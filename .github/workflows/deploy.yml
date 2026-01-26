@@ -108,5 +108,5 @@ jobs:
               -e AWS_S3_BUCKET="$AWS_S3_BUCKET" \
               $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-            # 5. 미사용 이미지 삭제 (디스크 용량 확보)
+            # 미사용 이미지 삭제 (디스크 용량 확보)
             docker image prune -f
