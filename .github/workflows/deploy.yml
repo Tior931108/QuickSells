@@ -79,5 +79,5 @@ jobs:
 
             bash ~/deploy.sh
 
-            # 미사용 이미지 삭제 (용량 관리)
+            # 미사용 이미지 삭제
             docker image prune -af
