@@ -1,3 +1,5 @@
+name: CI/CD Pipeline
+
 on:
   push:
     branches:
@@ -9,14 +11,10 @@ env:
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
   IMAGE_TAG: ${{ github.sha }}
 
-# =========================
-#  1⃣ CI: Build & Push
-# =========================
 jobs:
   build-and-push:
     name: Build & Push to ECR
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -31,14 +29,6 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        env:
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
         run: ./gradlew clean build -x test
 
       - name: Configure AWS credentials
@@ -56,9 +46,6 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-  # =========================
-  # 2 CD: Deploy to EC2
-  # =========================
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
@@ -71,42 +58,32 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          #  GitHub Secrets의 값들을 SSH 세션 환경 변수로 등록
-          envs: |
-            ECR_REGISTRY,
-            ECR_REPOSITORY,
-            IMAGE_TAG,
-            DB_URL,
-            DB_USERNAME,
-            DB_PASSWORD,
-            JWT_SECRET_KEY,
-            AWS_ACCESS_KEY,
-            AWS_SECRET_KEY,
-            AWS_S3_BUCKET
+          # 💡 [핵심 수정] envs 형식을 한 줄로 명확하게 선언
+          envs: ECR_REGISTRY,ECR_REPOSITORY,IMAGE_TAG,DB_URL,DB_USERNAME,DB_PASSWORD,JWT_SECRET_KEY,AWS_ACCESS_KEY,AWS_SECRET_KEY,AWS_S3_BUCKET
           script: |
-            # ECR 로그인 (EC2 인스턴스에서 이미지를 받기 위해 필요할 수 있음)
-            # AWS CLI가 EC2에 설정되어 있다면 아래 명령어가 작동합니다.
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REGISTRY
+            # 1. ECR 로그인
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-            # 기존 컨테이너 중지 및 삭제
+            # 2. 기존 컨테이너 중지 및 삭제
             docker stop cicd-test 2>/dev/null || true
             docker rm cicd-test 2>/dev/null || true
 
-            # 최신 이미지 Pull
+            # 3. 최신 이미지 Pull
             docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-            # 환경 변수와 함께 컨테이너 실행
+            # 4. 환경 변수와 함께 컨테이너 실행
+            # 💡 [핵심 수정] 변수 누락 방지를 위해 ${} 형식을 사용하고 따옴표로 감쌈
             docker run -d \
               --name cicd-test \
               -p 8080:8080 \
-              -e DB_URL="$DB_URL" \
-              -e DB_USERNAME="$DB_USERNAME" \
-              -e DB_PASSWORD="$DB_PASSWORD" \
-              -e JWT_SECRET_KEY="$JWT_SECRET_KEY" \
-              -e AWS_ACCESS_KEY="$AWS_ACCESS_KEY" \
-              -e AWS_SECRET_KEY="$AWS_SECRET_KEY" \
-              -e AWS_S3_BUCKET="$AWS_S3_BUCKET" \
+              -e DB_URL="${DB_URL}" \
+              -e DB_USERNAME="${DB_USERNAME}" \
+              -e DB_PASSWORD="${DB_PASSWORD}" \
+              -e JWT_SECRET_KEY="${JWT_SECRET_KEY}" \
+              -e AWS_ACCESS_KEY="${AWS_ACCESS_KEY}" \
+              -e AWS_SECRET_KEY="${AWS_SECRET_KEY}" \
+              -e AWS_S3_BUCKET="${AWS_S3_BUCKET}" \
               $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-            # 미사용 이미지 삭제 (디스크 용량 확보)
+            # 5. 미사용 이미지 삭제
             docker image prune -f
