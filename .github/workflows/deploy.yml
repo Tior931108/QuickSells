@@ -59,17 +59,17 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # 1. ECR 로그인
+            # ECR 로그인
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
-            # 2. 기존 컨테이너 중지 및 삭제
+            # 기존 컨테이너 중지 및 삭제
             docker stop cicd-test 2>/dev/null || true
             docker rm cicd-test 2>/dev/null || true
 
-            # 3. 최신 이미지 Pull
+            # 최신 이미지 Pull
             docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
-            # 4. 환경 변수 직접 주입하며 컨테이너 실행
+            # 환경 변수 직접 주입하며 컨테이너 실행
             # 💡 주의: $변수 대신 ${{ secrets.NAME }}을 직접 사용하여 누락 방지
             docker run -d \
               --name cicd-test \
