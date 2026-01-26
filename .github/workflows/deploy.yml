@@ -58,32 +58,30 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          # 💡 [핵심 수정] envs 형식을 한 줄로 명확하게 선언
-          envs: ECR_REGISTRY,ECR_REPOSITORY,IMAGE_TAG,DB_URL,DB_USERNAME,DB_PASSWORD,JWT_SECRET_KEY,AWS_ACCESS_KEY,AWS_SECRET_KEY,AWS_S3_BUCKET
           script: |
             # 1. ECR 로그인
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REGISTRY
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
             # 2. 기존 컨테이너 중지 및 삭제
             docker stop cicd-test 2>/dev/null || true
             docker rm cicd-test 2>/dev/null || true
 
             # 3. 최신 이미지 Pull
-            docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+            docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
-            # 4. 환경 변수와 함께 컨테이너 실행
-            # 💡 [핵심 수정] 변수 누락 방지를 위해 ${} 형식을 사용하고 따옴표로 감쌈
+            # 4. 환경 변수 직접 주입하며 컨테이너 실행
+            # 💡 주의: $변수 대신 ${{ secrets.NAME }}을 직접 사용하여 누락 방지
             docker run -d \
               --name cicd-test \
               -p 8080:8080 \
-              -e DB_URL="${DB_URL}" \
-              -e DB_USERNAME="${DB_USERNAME}" \
-              -e DB_PASSWORD="${DB_PASSWORD}" \
-              -e JWT_SECRET_KEY="${JWT_SECRET_KEY}" \
-              -e AWS_ACCESS_KEY="${AWS_ACCESS_KEY}" \
-              -e AWS_SECRET_KEY="${AWS_SECRET_KEY}" \
-              -e AWS_S3_BUCKET="${AWS_S3_BUCKET}" \
-              $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+              -e DB_URL="${{ secrets.DB_URL }}" \
+              -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
+              -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+              -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+              -e AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
+              -e AWS_SECRET_KEY="${{ secrets.AWS_SECRET_KEY }}" \
+              -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
+              ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
-            # 5. 미사용 이미지 삭제
-            docker image prune -f
+            # 5. 미사용 이미지 삭제 (용량 관리)
+            docker image prune -af
