@@ -1,6 +1,7 @@
 package com.example.quicksells.domain.deal.model.response;
 
-import com.example.quicksells.common.enums.DealType;
+import com.example.quicksells.common.enums.AppraiseStatus;
+import com.example.quicksells.common.enums.AuctionStatusType;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -10,10 +11,14 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class DealCompletedResponse {
 
-    private Long dealId;
-    private DealType dealType;          // IMMEDIATE_SELL | AUCTION
-    private Integer dealPrice;          // 최종 판매가
-    private Long itemId;
-    private String itemName;
-    private LocalDateTime completedAt;
+    private final Long dealId;
+    private final Integer dealPrice;
+
+    private final AppraiseStatus appraiseStatus;
+    private final AuctionStatusType auctionStatus; // nullable
+
+    private final Long itemId;
+    private final String itemName;
+
+    private final LocalDateTime completedAt; // 지금은 deal.createdAt 사용(완료시각 컬럼 없으니)
 }

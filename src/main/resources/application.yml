@@ -18,7 +18,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: false
@@ -28,6 +28,27 @@ spring:
     multipart:
       max-file-size: 1MB
       max-request-size: 5MB
+
+  security:
+    oauth2:
+      client:
+        registration:
+           google:
+             client-id: ${GOOGLE_CLIENT_ID}
+             client-secret: ${GOOGLE_CLIENT_SECRET}
+             redirect-uri: "{baseUrl}/login/oauth2/code/google"
+             authorization-grant-type: authorization_code
+             client-authentication-method: client_secret_post
+             client-name: Google
+             scope:
+               - profile
+               - email
+
+frontend:
+   redirect-url: http://localhost:3000
+
+backend:
+  server-name: localhost
 
 jwt:
   secret:

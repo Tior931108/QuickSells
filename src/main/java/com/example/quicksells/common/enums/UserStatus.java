@@ -1,6 +1,6 @@
 package com.example.quicksells.common.enums;
 
-public enum DealType {
+public enum UserStatus {
 
-    SALE, PURCHASE
+    PENDING, ACTIVE
 }

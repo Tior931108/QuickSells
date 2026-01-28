@@ -13,7 +13,7 @@ import com.example.quicksells.domain.auction.model.response.AuctionCreateRespons
 import com.example.quicksells.domain.auction.service.AuctionService;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
 import com.example.quicksells.domain.deal.entity.Deal;
-import com.example.quicksells.domain.deal.repository.DealRepository;
+import com.example.quicksells.domain.deal.service.DealService;
 import com.example.quicksells.domain.item.entity.Item;
 import com.example.quicksells.domain.item.repository.ItemRepository;
 import com.example.quicksells.domain.user.entity.User;
@@ -32,10 +32,10 @@ import java.util.Optional;
 public class AppraiseService {
 
     private final AppraiseRepository appraiseRepository;
-    private final DealRepository dealRepository;
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
     private final AuctionService auctionService;
+    private final DealService dealService;
 
     /**
      * 감정 생성 (관리자 권한만 가능)
@@ -86,9 +86,9 @@ public class AppraiseService {
         }
 
         // 상품이 이미 판매 완료된 경우
-         if (item.isSelling()) {
-             throw new CustomException(ExceptionCode.EXISTS_ITEM_SELL);
-         }
+        if (item.isSelling()) {
+            throw new CustomException(ExceptionCode.EXISTS_ITEM_SELL);
+        }
     }
 
     /**
@@ -256,8 +256,10 @@ public class AppraiseService {
         validateAppraiseForProcessing(appraise);
 
         // 3. 즉시 판매 처리
-        Item item = appraise.getItem();
-        Deal deal = handleImmediateSell(appraise, item);
+        appraise.updateStatus(AppraiseStatus.IMMEDIATE_SELL);
+        appraise.updateSelected(true);
+
+        Deal deal = dealService.createAppraiseDeal(appraise);
 
         return AppraiseImmediateSellResponse.from(appraise, deal);
     }
@@ -304,49 +306,6 @@ public class AppraiseService {
                 appraise.getAppraiseStatus() == AppraiseStatus.AUCTION) {
             throw new CustomException(ExceptionCode.APPRAISE_ALREADY_PROCESSED);
         }
-    }
-
-    /**
-     * 즉시 판매 처리
-     * - Appraise 기준으로 Deal은 1:1
-     * - 기존 Deal 있으면 업데이트, 없으면 생성
-     * - Appraise와 Deal은 1:1
-     * - 선택된 감정(Appraise)을 기준으로 거래(Deal)가 생성된다
-     */
-    private Deal handleImmediateSell(Appraise appraise, Item item) {
-
-        // 1. 해당 Appraise에 연결된 Deal 조회 또는 생성
-        Deal deal = dealRepository.findByAppraiseId(appraise.getId())
-                .map(existingDeal -> {
-                    // 기존 Deal 업데이트
-                    existingDeal.updateForAppraise(
-                            DealType.IMMEDIATE_SELL,
-                            StatusType.ON_SALE,
-                            appraise.getBidPrice()
-                    );
-                    return existingDeal;
-                })
-                .orElseGet(() -> {
-                    // 새로운 Deal 생성
-                    Deal newDeal = new Deal(
-                            appraise,                    // appraise 1:1
-                            null,                        // auction null
-                            DealType.IMMEDIATE_SELL,
-                            StatusType.ON_SALE,
-                            appraise.getBidPrice()
-                    );
-                    return newDeal;
-                });
-
-        // 2. Deal 저장
-        dealRepository.save(deal);
-        dealRepository.flush();
-
-        // 3. Appraise 상태 업데이트
-        appraise.updateSelected(true);
-        appraiseRepository.save(appraise);
-
-        return deal;  // Deal 리턴
     }
 
     /**

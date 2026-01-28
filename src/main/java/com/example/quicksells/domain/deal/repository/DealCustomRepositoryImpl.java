@@ -1,6 +1,5 @@
 package com.example.quicksells.domain.deal.repository;
 
-import com.example.quicksells.common.enums.DealType;
 import com.example.quicksells.common.enums.StatusType;
 import com.example.quicksells.domain.deal.model.response.DealCompletedResponse;
 import com.example.quicksells.domain.deal.model.response.DealGetAllQueryResponse;
@@ -13,8 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
+import java.util.Objects;
 import static com.example.quicksells.domain.deal.entity.QDeal.deal;
-import static com.example.quicksells.domain.item.entity.QItem.item;
 
 @RequiredArgsConstructor
 public class DealCustomRepositoryImpl implements DealCustomRepository {
@@ -23,11 +22,15 @@ public class DealCustomRepositoryImpl implements DealCustomRepository {
 
     @Override
     public Page<DealGetAllQueryResponse> findPurchaseDeals(Long buyerId, Pageable pageable) {
-        return fetchDeals(deal.auction.buyer.id.eq(buyerId), pageable);
+        // 구매 내역 = 경매 구매자 기준
+        return fetchDeals(deal.auction.isNotNull()
+                .and(deal.auction.buyer.isNotNull())
+                .and(deal.auction.buyer.id.eq(buyerId)), pageable);
     }
 
     @Override
     public Page<DealGetAllQueryResponse> findSaleDeals(Long sellerId, Pageable pageable) {
+        // 판매 내역 = 아이템 판매자 기준
         return fetchDeals(deal.appraise.item.seller.id.eq(sellerId), pageable);
     }
 
@@ -38,33 +41,39 @@ public class DealCustomRepositoryImpl implements DealCustomRepository {
 
     private Page<DealGetAllQueryResponse> fetchDeals(BooleanExpression condition, Pageable pageable) {
 
-        // static import 기반 별칭
         QUser seller = new QUser("seller");
         QUser buyer = new QUser("buyer");
 
         List<DealGetAllQueryResponse> content = queryFactory
                 .select(Projections.constructor(
                         DealGetAllQueryResponse.class,
+                        // Deal
                         deal.id,
-                        deal.type,
                         deal.dealPrice,
                         deal.status,
                         deal.createdAt,
 
+                        // Derived status source
+                        deal.appraise.appraiseStatus,
+                        deal.auction.status,
+
+                        // Item
                         deal.appraise.item.id,
                         deal.appraise.item.name,
 
+                        // Seller
                         seller.id,
                         seller.name,
 
+                        // Buyer (nullable)
                         buyer.id,
                         buyer.name
                 ))
                 .from(deal)
-                .join(deal.appraise)
-                .join(deal.appraise.item)
+                .join(deal.appraise)              // deal -> appraise
+                .join(deal.appraise.item)         // appraise -> item
                 .join(deal.appraise.item.seller, seller)
-                .leftJoin(deal.auction)
+                .leftJoin(deal.auction)           // deal -> auction (nullable)
                 .leftJoin(deal.auction.buyer, buyer)
                 .where(condition)
                 .orderBy(deal.createdAt.desc())
@@ -78,31 +87,29 @@ public class DealCustomRepositoryImpl implements DealCustomRepository {
                 .where(condition)
                 .fetchOne();
 
-        return new PageImpl<>(content, pageable, total);
+        return new PageImpl<>(content, pageable, Objects.requireNonNullElse(total, 0L));
     }
 
     @Override
     public List<DealCompletedResponse> findCompletedDeals(int limit) {
 
+        // 완료 거래(SOLD)만: 즉시/경매 구분은 appraiseStatus/auctionStatus로 표시
         return queryFactory
                 .select(Projections.constructor(
                         DealCompletedResponse.class,
                         deal.id,
-                        deal.type,
                         deal.dealPrice,
-                        item.id,
-                        item.name,
+                        deal.appraise.appraiseStatus,
+                        deal.auction.status,
+                        deal.appraise.item.id,
+                        deal.appraise.item.name,
                         deal.createdAt
                 ))
                 .from(deal)
-                .join(deal.appraise.item, item)
-                .where(
-                        deal.status.eq(StatusType.SOLD),
-                        deal.type.in(
-                                DealType.IMMEDIATE_SELL,
-                                DealType.AUCTION
-                        )
-                )
+                .join(deal.appraise)
+                .join(deal.appraise.item)
+                .leftJoin(deal.auction)
+                .where(deal.status.eq(StatusType.SOLD))
                 .orderBy(deal.createdAt.desc())
                 .limit(limit)
                 .fetch();

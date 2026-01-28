@@ -43,7 +43,7 @@ public class AuctionController {
 
     @Operation(summary = "경매 내역 전체 조회")
     @GetMapping("/auctions")
-    public ResponseEntity<PageResponse> getAllAuction(AuctionSearchFilterRequest request, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "0") int size) {
+    public ResponseEntity<PageResponse> getAllAuction(@Valid @RequestBody(required = false) AuctionSearchFilterRequest request, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "0") int size) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdAt");
 

@@ -1,31 +1,33 @@
 package com.example.quicksells.domain.deal.model.response;
 
-import com.example.quicksells.common.enums.DealType;
+import com.example.quicksells.common.enums.AppraiseStatus;
+import com.example.quicksells.common.enums.AuctionStatusType;
 import com.example.quicksells.common.enums.StatusType;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-
 import java.time.LocalDateTime;
 
 @Getter
 @RequiredArgsConstructor
 public class DealGetAllQueryResponse {
 
-    private Long dealId;
-    private DealType type;
-    private Integer dealPrice;
-    private StatusType status;
-    private LocalDateTime createdAt;
+    private final Long dealId;
+    private final Integer dealPrice;
+    private final StatusType dealStatus;
+    private final LocalDateTime createdAt;
+
+    private final AppraiseStatus appraiseStatus;
+    private final AuctionStatusType auctionStatus; // nullable
 
     // item
-    private Long itemId;
-    private String itemTitle;
+    private final Long itemId;
+    private final String itemTitle;
 
     // seller
-    private Long sellerId;
-    private String sellerName;
+    private final Long sellerId;
+    private final String sellerName;
 
     // buyer (nullable)
-    private Long buyerId;
-    private String buyerName;
+    private final Long buyerId;
+    private final String buyerName;
 }

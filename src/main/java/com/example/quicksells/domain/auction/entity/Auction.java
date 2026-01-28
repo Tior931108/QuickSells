@@ -7,16 +7,13 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLRestriction;
-
 import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Table(name = "auctions")
+@Table(name = "auctions", indexes = {@Index(name = "idx_auction_status_end_time", columnList = "status, end_time")})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLRestriction("is_deleted = false")
 public class Auction {
 
     @Id
@@ -59,15 +56,13 @@ public class Auction {
     }
 
     public void auctionCloseTime(int timeOption) {
-        Clock clock = Clock.systemDefaultZone(); // 내 시스템 서버 기준 시간대
-        this.createdAt = LocalDateTime.now(clock);
+        this.createdAt = LocalDateTime.now(Clock.systemDefaultZone()); // 서버 기준 시간대
         this.endTime = createdAt.plusDays(timeOption); // timeOption 1~3일 설정가능
     }
 
     @PreUpdate
     public void auctionUpdateTime() {
-        Clock clock = Clock.systemDefaultZone();
-        this.updatedAt = LocalDateTime.now(clock); // 수정일 적용 후 DB저장
+        this.updatedAt = LocalDateTime.now(Clock.systemDefaultZone()); // 수정일 적용 후 DB저장
     }
 
     public void update(User buyer, Integer bidPrice) {
@@ -77,13 +72,11 @@ public class Auction {
 
     public void auctionEndTimeCheck() {
 
-        LocalDateTime nowDate = LocalDateTime.now(); // 현재 시간
+        LocalDateTime nowDate = LocalDateTime.now(Clock.systemDefaultZone()); // 현재 시간
 
         if (nowDate.isBefore(this.endTime)) {
             return; // 종료 시간 전일때 통과
         }
-
-        this.isDeleted = true; // 종료 시간에 경매 삭제
 
         if (this.buyer == null) {
             this.status = AuctionStatusType.UNSUCCESSFUL_BID; // 유찰완료 상태 변경

@@ -21,7 +21,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 
 @Service
@@ -52,7 +51,6 @@ public class DealService {
         Deal deal = new Deal(
                 appraise,
                 null, // 즉시판매 or 경매 전
-                request.getType(),
                 StatusType.ON_SALE,
                 request.getDealPrice()
         );
@@ -64,18 +62,41 @@ public class DealService {
 
     /**
      * 경매 등록 시 Deal 생성
-     * - Auction은 아직 생성되지 않은 상태
-     * - Deal이 경매의 "예정 거래" 역할을 함
+     * - Auction 생성 직후에 호출되는 구조로 통일(지금 너 코드처럼)
      */
     @Transactional
     public Deal createAuctionDeal(Appraise appraise, Auction auction) {
 
+        dealRepository.findByAppraiseId(appraise.getId())
+                .ifPresent(d -> { throw new CustomException(ExceptionCode.EXISTS_ACTIVE_DEAL); });
+
         Deal deal = new Deal(
                 appraise,
                 auction,
-                DealType.AUCTION,
                 StatusType.ON_SALE,
                 auction.getBidPrice()
+        );
+
+        return dealRepository.save(deal);
+    }
+
+    /**
+     * 즉시판매 확정 시 Deal 생성 (Appraise 기반)
+     * - Auction 없음
+     * - Appraise 1:1 Deal
+     */
+    @Transactional
+    public Deal createAppraiseDeal(Appraise appraise) {
+
+        // 이미 Deal 있으면 막거나(정책) / 업데이트 하거나(정책) 둘 중 하나
+        dealRepository.findByAppraiseId(appraise.getId())
+                .ifPresent(d -> { throw new CustomException(ExceptionCode.EXISTS_ACTIVE_DEAL); });
+
+        Deal deal = new Deal(
+                appraise,
+                null,
+                StatusType.ON_SALE,
+                appraise.getBidPrice()
         );
 
         return dealRepository.save(deal);
@@ -121,8 +142,12 @@ public class DealService {
         return dealRepository.findSaleDeals(authUser.getId(), pageable);
     }
 
+    /**
+     * 완료 거래 조회 메서드(전 사용자 홈페이지 띄우기 용)
+     */
     @Transactional(readOnly = true)
     public List<DealCompletedResponse> getCompletedDeals(int limit) {
+
         return dealRepository.findCompletedDeals(limit);
     }
 
@@ -130,6 +155,7 @@ public class DealService {
      * 권한 확인 서비스 로직
      */
     private boolean isAdmin(AuthUser authUser) {
+
         return authUser.getRole() == UserRole.ADMIN;
     }
 

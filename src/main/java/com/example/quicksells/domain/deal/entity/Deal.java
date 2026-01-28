@@ -1,6 +1,5 @@
 package com.example.quicksells.domain.deal.entity;
 
-import com.example.quicksells.common.enums.DealType;
 import com.example.quicksells.common.enums.ExceptionCode;
 import com.example.quicksells.common.enums.StatusType;
 import com.example.quicksells.common.exception.CustomException;
@@ -39,10 +38,6 @@ public class Deal {
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private DealType type;
-
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
     private StatusType status;
 
     @Column(nullable = false)
@@ -59,10 +54,9 @@ public class Deal {
         }
     }
 
-    public Deal(Appraise appraise, Auction auction, DealType type, StatusType status, Integer dealPrice) {
+    public Deal(Appraise appraise, Auction auction, StatusType status, Integer dealPrice) {
         this.appraise = appraise;
         this.auction = auction;
-        this.type = type;
         this.status = status;
         this.dealPrice = dealPrice;
     }
@@ -84,8 +78,7 @@ public class Deal {
     }
 
     // 감정 선택 시 Deal 업데이트
-    public void updateForAppraise(DealType type, StatusType status, Integer dealPrice) {
-        this.type = type;
+    public void updateForAppraise(StatusType status, Integer dealPrice) {
         this.status = status;
         this.dealPrice = dealPrice;
     }

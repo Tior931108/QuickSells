@@ -1,5 +1,6 @@
 package com.example.quicksells.domain.auction.repository;
 
+import com.example.quicksells.common.enums.AuctionStatusType;
 import com.example.quicksells.domain.auction.entity.Auction;
 import com.example.quicksells.domain.auction.model.request.AuctionSearchFilterRequest;
 import com.querydsl.core.BooleanBuilder;
@@ -10,6 +11,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.util.StringUtils;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import static com.example.quicksells.domain.appraise.entity.QAppraise.appraise;
 import static com.example.quicksells.domain.auction.entity.QAuction.auction;
@@ -41,6 +44,13 @@ public class AuctionCustomRepositoryImpl implements AuctionCustomRepository {
             }
         }
 
+        LocalDateTime now = LocalDateTime.now(Clock.systemDefaultZone());
+
+        // 경매 진행 중이고 마감되지 않은 경매
+        builder.and(auction.status.eq(AuctionStatusType.AUCTIONING));
+        builder.and(auction.endTime.goe(now));
+
+
         List<Auction> content = jpaQueryFactory
                 .selectFrom(auction)
                 .leftJoin(auction.appraise, appraise).fetchJoin() // fetchJoin -> n+1 방지
@@ -50,9 +60,13 @@ public class AuctionCustomRepositoryImpl implements AuctionCustomRepository {
                 .limit(pageable.getPageSize())
                 .fetch();
 
+        // 기본조건으로 검색된 데이터 수
         JPAQuery<Long> countQuery = jpaQueryFactory
                 .select(auction.count())
-                .from(auction);
+                .from(auction)
+                .leftJoin(auction.appraise, appraise)
+                .leftJoin(appraise.item, item)
+                .where(builder);
 
         return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }

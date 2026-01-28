@@ -3,6 +3,9 @@ package com.example.quicksells.common.config;
 import com.example.quicksells.common.filter.JwtAuthenticationFilter;
 import com.example.quicksells.common.security.CustomAccessDeniedHandler;
 import com.example.quicksells.common.security.CustomAuthenticationEntryPoint;
+import com.example.quicksells.common.security.CustomOAuth2UserService;
+import com.example.quicksells.common.security.OAuthSuccessHandler;
+import com.example.quicksells.common.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,8 +14,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -22,9 +23,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity(securedEnabled = true) // 권한 검사 활성
 public class SecurityConfig {
 
+    private final JwtUtil jwtUtil;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
+    private final CustomOAuth2UserService customOAuth2UserService;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -48,10 +52,17 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 // 세션 기반 기능 제거
                 .rememberMe(AbstractHttpConfigurer::disable)
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth.baseUri("/api/auth/login/oauth2"))
+                        .userInfoEndpoint(user -> user.userService(customOAuth2UserService))
+                        .successHandler(oAuthSuccessHandler())
+                )
                 // 요청 URL 권한 설정
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/logout").authenticated()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                        .requestMatchers("/oauth/google/success/**").permitAll()
                         // swagger ui 설정 추가
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
@@ -66,7 +77,5 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    public OAuthSuccessHandler oAuthSuccessHandler() { return new OAuthSuccessHandler(jwtUtil); }
 }

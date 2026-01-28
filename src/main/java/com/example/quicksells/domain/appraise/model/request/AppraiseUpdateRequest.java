@@ -1,6 +1,7 @@
 package com.example.quicksells.domain.appraise.model.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,10 +12,12 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor // Jackson이 JSON을 역직렬화할때 기본 생성자가 필요함 : 없으면 논리형 값 삽입시 JSON 파싱 오류 발생
 @AllArgsConstructor
+@Schema(description = "감정 선택")
 public class AppraiseUpdateRequest {
 
     @NotNull(message = "선택 여부는 필수입니다.")
     @JsonProperty("isSelected")
+    @Schema(description = "감정 선택시 true 입력")
     private Boolean isSelected;
 
     /**
