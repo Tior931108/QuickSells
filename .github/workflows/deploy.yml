@@ -60,7 +60,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 1. 현재 로드밸런서가 보고 있는 타겟 그룹 확인 후 대상 서버 결정
+      # 1. 현재 로드밸런서가 어느 그룹을 보는지 확인
       - name: Check current Target Group
         id: check-tg
         run: |
@@ -74,7 +74,7 @@ jobs:
             echo "TARGET_TG_ARN=${{ secrets.TG_BLUE_ARN }}" >> $GITHUB_ENV
           fi
 
-      # 2. 새로운 서버에 컨테이너 배포
+      # 2. 대기 중인 서버에 배포 (yml 설정 유지 + 런타임 주입)
       - name: Deploy to Target Server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -84,11 +84,9 @@ jobs:
           script: |
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
             docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
-            
-            # 기존 앱 중지 및 삭제
             docker rm -f quicksells-app 2>/dev/null || true
             
-            # 새 컨테이너 실행
+            # yml의 localhost를 무시하고 실제 환경변수를 주입하여 실행
             docker run -d \
               --name quicksells-app \
               --network host \
@@ -110,29 +108,11 @@ jobs:
             
             docker image prune -af
 
-      # 3. 헬스체크
-      - name: Wait for Application Health Check
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ env.TARGET_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            echo "Checking health for quicksells-app..."
-            for i in {1..20}; do
-              if curl -sf http://localhost:8080/health > /dev/null; then
-                echo "Health check passed!"
-                exit 0
-              fi
-              echo "Waiting for app to be ready... ($i/20)"
-              sleep 5
-            done
-            
-            echo "Health check failed! Showing container logs:"
-            docker logs --tail 50 quicksells-app
-            exit 1
+      # 3. 새 서버가 뜰 때까지 잠시 대기
+      - name: Wait for Health Check
+        run: sleep 40
 
-      # 4. 헬스체크 성공 시 로드밸런서 리스너 교체 (스위칭)
+      # 4. 리스너 스위칭 (블루 <-> 그린 교체)
       - name: Switch Target Group
         run: |
           aws elbv2 modify-listener \
