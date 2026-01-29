@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Multi Instance
+name: CI/CD Pipeline - Dual Instance
 
 on:
   push:
@@ -53,15 +53,25 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
     strategy:
+      fail-fast: false
       matrix:
-        # 여기에 Secrets에 등록한 두 개의 서버 IP를 넣습니다.
-        target_host: [ "${{ secrets.EC2_HOST }}", "${{ secrets.EC2_HOST_2 }}" ]
+        # secrets 대신 인덱스(서버 번호)를 정의합니다.
+        server_index: [1, 2]
 
     steps:
-      - name: Deploy to ${{ matrix.target_host }}
+      - name: Set Target Host
+        # 인덱스에 따라 실제 IP 주소를 환경변수에 할당합니다.
+        run: |
+          if [ "${{ matrix.server_index }}" == "1" ]; then
+            echo "TARGET_HOST=${{ secrets.EC2_HOST }}" >> $GITHUB_ENV
+          else
+            echo "TARGET_HOST=${{ secrets.EC2_HOST_2 }}" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ matrix.target_host }}
+          host: ${{ env.TARGET_HOST }} # 위에서 설정한 환경변수 사용
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
@@ -71,7 +81,7 @@ jobs:
             # 2. 최신 이미지 Pull
             docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
-            # 3. 기존 컨테이너 중지 및 삭제 (이제 포트는 8080 하나만 신경 쓰면 됨)
+            # 3. 기존 컨테이너 중지 및 삭제
             docker rm -f quicksells-app 2>/dev/null || true
 
             # 4. 새 컨테이너 실행
@@ -92,5 +102,5 @@ jobs:
               -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
               ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
-            # 5. 불필요한 이미지 정리
+            # 5. 정리
             docker image prune -af
