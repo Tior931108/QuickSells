@@ -64,16 +64,25 @@ jobs:
             # 1. ECR 로그인
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
             
-            # 2. 최신 이미지 Pull
-            docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+            # 2. 현재 실행 중인 포트 확인 (8080이 있으면 IS_8080에 저장)
+            IS_8080=$(docker ps --format "{{.Names}}" | grep quicksells-8080)
             
-            # 3. 기존 컨테이너 제거
-            docker rm -f quicksells-8081 2>/dev/null || true
+            if [ -z "$IS_8080" ]; then
+              # 8080이 없으면 8080을 새로 띄움 (8081 -> 8080 전환)
+              NEW_PORT=8080
+              OLD_PORT=8081
+            else
+              # 8080이 있으면 8081을 새로 띄움 (8080 -> 8081 전환)
+              NEW_PORT=8081
+              OLD_PORT=8080
+            fi
             
-            # 4. 새 컨테이너 실행 (환경변수를 직접 전달)
+            echo "Starting new container on port $NEW_PORT..."
+            
+            # 3. 새 컨테이너 실행
             docker run -d \
-              --name quicksells-8081 \
-              -p 8081:8080 \
+              --name quicksells-$NEW_PORT \
+              -p $NEW_PORT:8080 \
               --restart always \
               -e DB_URL="${{ secrets.DB_URL }}" \
               -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
@@ -88,5 +97,13 @@ jobs:
               -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
               ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
             
-            # 5. 미사용 이미지 정리
+            # 4. 새 컨테이너가 뜰 때까지 잠시 대기 (Health Check 대용)
+            echo "Waiting for 20 seconds for health check..."
+            sleep 20
+            
+            # 5. 기존 컨테이너 정리
+            echo "Removing old container on port $OLD_PORT..."
+            docker rm -f quicksells-$OLD_PORT 2>/dev/null || true
+            
+            # 6. 미사용 이미지 정리
             docker image prune -af
