@@ -87,7 +87,7 @@ jobs:
             # 4. 새 컨테이너 실행
             docker run -d \
               --name quicksells-app \
-              -p 8080:8080 \
+              --network host \
               --restart always \
               -e DB_URL="${{ secrets.DB_URL }}" \
               -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
