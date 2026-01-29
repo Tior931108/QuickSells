@@ -83,7 +83,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
-            docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+            docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
             docker rm -f quicksells-app 2>/dev/null || true
             
             # yml의 localhost를 무시하고 실제 환경변수를 주입하여 실행
@@ -104,16 +104,29 @@ jobs:
               -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
               -e TOSS_CLIENT_KEY="${{ secrets.TOSS_CLIENT_KEY }}" \
               -e TOSS_SECRET_KEY="${{ secrets.TOSS_SECRET_KEY }}" \
-              ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+              ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
             
             docker image prune -af
 
       # 3. 새 서버가 뜰 때까지 잠시 대기
-      - name: Wait for Health Check
-        run: sleep 40
+      - name: Wait for Application Health Check
+        run: |
+          echo "Waiting for health check..."
+          for i in {1..12}; do
+            if curl -fs http://${{ env.TARGET_HOST }}:8080/health > /dev/null; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "블 Not healthy yet... retrying"
+            sleep 5
+          done
+
+          echo "Health check failed"
+          exit 1
 
       # 4. 리스너 스위칭 (블루 <-> 그린 교체)
       - name: Switch Target Group
+        if: success()
         run: |
           aws elbv2 modify-listener \
             --listener-arn ${{ secrets.ALB_LISTENER_ARN }} \
