@@ -109,8 +109,27 @@ jobs:
             docker image prune -af
 
       # 3. 새 서버가 뜰 때까지 잠시 대기
-      - name: Wait for Health Check
-        run: sleep 40
+      - name: Wait until Target Group is healthy
+        run: |
+          echo "Waiting for target group to be healthy..."
+          for i in {1..30}; do
+            HEALTH=$(aws elbv2 describe-target-health \
+              --target-group-arn ${{ env.TARGET_TG_ARN }} \
+              --query "TargetHealthDescriptions[0].TargetHealth.State" \
+              --output text)
+
+            echo "Current health: $HEALTH"
+
+            if [ "$HEALTH" = "healthy" ]; then
+              echo "Target is healthy!"
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          echo "Health check failed"
+          exit 1
 
       # 4. 리스너 스위칭 (블루 <-> 그린 교체)
       - name: Switch Target Group
