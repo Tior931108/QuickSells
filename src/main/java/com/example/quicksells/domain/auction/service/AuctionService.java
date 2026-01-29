@@ -6,7 +6,6 @@ import com.example.quicksells.common.enums.ExceptionCode;
 import com.example.quicksells.common.exception.CustomException;
 import com.example.quicksells.domain.appraise.entity.Appraise;
 import com.example.quicksells.domain.appraise.repository.AppraiseRepository;
-import com.example.quicksells.domain.auction.model.dto.BidInfo;
 import com.example.quicksells.domain.auction.model.request.AuctionCreateRequest;
 import com.example.quicksells.domain.auction.model.request.AuctionSearchFilterRequest;
 import com.example.quicksells.domain.auction.model.request.AuctionUpdateRequest;
