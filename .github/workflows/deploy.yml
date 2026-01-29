@@ -65,7 +65,7 @@ jobs:
           if [ "${{ matrix.server_index }}" == "1" ]; then
             echo "TARGET_HOST=${{ secrets.EC2_HOST }}" >> $GITHUB_ENV
           else
-            echo "TARGET_HOST=${{ secrets.EC2_HOST_2 }}" >> $GITHUB_ENV
+            echo "TARGET_HOST=${{ secrets.EC2_HOST2 }}" >> $GITHUB_ENV
           fi
 
       - name: Deploy to EC2
