@@ -112,16 +112,17 @@ jobs:
       - name: Wait until Target Group is healthy
         run: |
           echo "Waiting for target group to be healthy..."
+
           for i in {1..30}; do
-            HEALTH=$(aws elbv2 describe-target-health \
+            STATES=$(aws elbv2 describe-target-health \
               --target-group-arn ${{ env.TARGET_TG_ARN }} \
-              --query "TargetHealthDescriptions[0].TargetHealth.State" \
+              --query "TargetHealthDescriptions[].TargetHealth.State" \
               --output text)
 
-            echo "Current health: $HEALTH"
+            echo "Current states: $STATES"
 
-            if [ "$HEALTH" = "healthy" ]; then
-              echo "Target is healthy!"
+            if echo "$STATES" | grep -q healthy; then
+              echo "Target group is healthy!"
               exit 0
             fi
 
