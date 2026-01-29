@@ -24,6 +24,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: 'gradle' # Gradle 종속성 캐싱 추가 (빌드 속도 향상)
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -43,7 +44,6 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          # 커밋 해시 태그와 latest 태그 두 개를 동시에 빌드
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
@@ -61,14 +61,21 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # 1. ECR 로그인
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+            
+            # 2. 최신 이미지 Pull
             docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
-            docker rm -f quicksells-8081 || true
+            # 3. 기존 컨테이너 중지 및 삭제 (에러 메시지 방지 처리)
+            # 만약 컨테이너가 있으면 끄고 지우되, 없어도 에러를 내뱉지 않음
+            docker rm -f quicksells-8081 2>/dev/null || true
 
+            # 4. 새 컨테이너 실행
             docker run -d \
               --name quicksells-8081 \
               -p 8081:8080 \
+              --restart always \
               -e DB_URL="${{ secrets.DB_URL }}" \
               -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
               -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
@@ -82,4 +89,5 @@ jobs:
               -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
               ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
-            docker image prune -af
+            # 5. 사용하지 않는 이미지 정리 (Dangling 이미지 위주로 정리하여 안전성 확보)
+            docker image prune -f
