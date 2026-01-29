@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <title>QuickSells Toss Test</title>
+    <script src="https://js.tosspayments.com/v1/payment-widget"></script>
+</head>
+<body>
+<h2>토스 결제 테스트 (백엔드 단독)</h2>
+
+<p>1) 먼저 /api/auth/login 으로 로그인해서 JWT 토큰을 발급받고 아래에 붙여넣으세요.</p>
+
+<label>JWT (Bearer 없이 토큰만):</label><br/>
+<input id="token" style="width: 900px;" />
+<button onclick="saveToken()">토큰 저장</button>
+
+<hr/>
+
+<label>충전 금액:</label>
+<input id="amount" type="number" value="10000" min="10000" />
+<div id="payment-method"></div>
+<div id="agreement"></div>
+<button id="payBtn" onclick="startPayment()">결제하기</button>
+
+<script>
+    function saveToken() {
+        const token = document.getElementById("token").value.trim();
+        localStorage.setItem("QS_TOKEN", token);
+        alert("저장됨");
+    }
+
+    async function fetchClientKey() {
+        const res = await fetch("/api/payments/config");
+        const json = await res.json();
+        if (!res.ok) throw new Error("config fetch failed: " + JSON.stringify(json));
+        return json.data.clientKey;
+    }
+
+    // ✅ 위젯 인스턴스를 전역으로 들고 있어야 결제 버튼 눌렀을 때 requestPayment 가능
+    let paymentWidget = null;
+
+    async function startPayment() {
+        const token = localStorage.getItem("QS_TOKEN");
+        if (!token) {
+            alert("토큰을 먼저 저장하세요.");
+            return;
+        }
+
+        const amount = parseInt(document.getElementById("amount").value, 10);
+
+        // ✅ 최소 충전 금액 10,000원 검증
+        if (Number.isNaN(amount) || amount < 10000) {
+            alert("최소 충전 금액은 10,000원입니다.");
+            return;
+        }
+
+        // 1) 서버에 주문 생성(READY)
+        const orderRes = await fetch("/api/payments/orders", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ amount })
+        });
+
+        const orderJson = await orderRes.json();
+        if (!orderRes.ok) {
+            alert("주문 생성 실패: " + JSON.stringify(orderJson));
+            return;
+        }
+
+        const orderId = orderJson.data.orderId;
+
+        // 2) clientKey 가져오기
+        const clientKey = await fetchClientKey();
+
+        /**
+         * 3) 결제위젯 생성 + 렌더링
+         *
+         * ✅ 중요
+         * - 결제수단 선택 UI를 렌더링해야 사용자가 결제수단을 선택할 수 있음
+         * - 렌더링 없이 requestPayment만 호출하면
+         *   "결제수단이 아직 선택되지 않았어요" 에러가 발생함
+         */
+        paymentWidget = PaymentWidget(clientKey, "ANONYMOUS");
+
+        // 결제수단 위젯 렌더링 (amount는 여기에도 전달)
+        paymentWidget.renderPaymentMethods(
+            "#payment-method",
+            { value: amount }
+        );
+
+        // 약관 위젯 렌더링
+        paymentWidget.renderAgreement("#agreement");
+
+        // 4) 사용자에게 결제수단 선택을 안내한 뒤 결제 요청
+        // - 여기서는 바로 결제 요청하지 않고,
+        //   아래 confirmPay() 버튼을 눌렀을 때 결제 요청되게 하는 게 UX가 좋음.
+        //   (원하면 자동 호출도 가능하지만, 선택이 끝나기 전이면 실패 가능)
+        window.confirmPay = async function () {
+            try {
+                await paymentWidget.requestPayment({
+                    orderId: orderId,
+                    orderName: "QuickSells 포인트 충전",
+                    successUrl: window.location.origin + "/payment-success.html",
+                    failUrl: window.location.origin + "/payment-fail.html"
+                });
+            } catch (e) {
+                console.error(e);
+                alert("결제 요청 실패: " + (e?.message ?? e));
+            }
+        };
+
+        // 버튼 활성화
+        const btn = document.getElementById("payBtn");
+        btn.textContent = "결제하기(결제수단 선택 후 클릭)";
+        btn.onclick = window.confirmPay;
+
+        alert("결제수단을 선택하고 '결제하기' 버튼을 눌러주세요.");
+    }
+</script>
+</body>
+</html>
+
+</n> http://localhost:8080/toss-test.html

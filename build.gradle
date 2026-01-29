@@ -24,6 +24,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
     // devtool 추가
     implementation 'org.springframework.boot:spring-boot-devtools'
     compileOnly 'org.projectlombok:lombok'
@@ -64,6 +65,12 @@ dependencies {
 
     // redisson
     implementation 'org.redisson:redisson:4.1.0'
+
+    // WebSocket & STOMP
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // JSON 처리
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
 }
 
 tasks.named('test') {

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <title>Payment Success</title>
+</head>
+<body>
+<h2>결제 성공 리다이렉트</h2>
+<pre id="log"></pre>
+
+<script>
+    const logEl = document.getElementById("log");
+    const params = new URLSearchParams(window.location.search);
+
+    const paymentKey = params.get("paymentKey");
+    const orderId = params.get("orderId");
+    const amount = parseInt(params.get("amount"), 10);
+
+    logEl.textContent = `paymentKey=${paymentKey}\norderId=${orderId}\namount=${amount}\n\nconfirm 호출 중...`;
+
+    (async () => {
+        const token = localStorage.getItem("QS_TOKEN");
+        if (!token) {
+            logEl.textContent += "\n\n토큰이 없습니다. toss-test.html에서 토큰 저장 후 다시 시도하세요.";
+            return;
+        }
+
+        const res = await fetch("/api/payments/confirm", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ paymentKey, orderId, amount })
+        });
+
+        const json = await res.json();
+        logEl.textContent += "\n\n서버 응답:\n" + JSON.stringify(json, null, 2);
+    })();
+</script>
+</body>
+</html>
