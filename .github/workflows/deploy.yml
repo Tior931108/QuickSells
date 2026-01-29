@@ -117,7 +117,7 @@ jobs:
           echo "Post-wait sanity check (container running)"
 
       # 4. 리스너 스위칭 (블루 <-> 그린 교체)
-      - name: Switch Target Group
+      - name:  Switch Target Group
         run: |
           aws elbv2 modify-listener \
             --listener-arn ${{ secrets.ALB_LISTENER_ARN }} \
