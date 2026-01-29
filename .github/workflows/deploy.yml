@@ -96,10 +96,14 @@ jobs:
               -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
               -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
               -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+              -e GOOGLE_EMAIL="${{ secrets.GOOGLE_EMAIL }}" \
+              -e GOOGLE_APP_PASSWORD="${{ secrets.GOOGLE_APP_PASSWORD }}" \
               -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
               -e AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
               -e AWS_SECRET_KEY="${{ secrets.AWS_SECRET_KEY }}" \
               -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
+              -e TOSS_CLIENT_KEY="${{ secrets.TOSS_CLIENT_KEY }}" \
+              -e TOSS_SECRET_KEY="${{ secrets.TOSS_SECRET_KEY }}" \
               ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
             
             docker image prune -af
