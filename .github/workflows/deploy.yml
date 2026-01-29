@@ -109,24 +109,18 @@ jobs:
             docker image prune -af
 
       # 3. 새 서버가 뜰 때까지 잠시 대기
-      - name: Wait until Target Group is healthy
+      - name: Application Health Check
         run: |
-          echo "Waiting for target group to be healthy..."
-
           for i in {1..30}; do
-            STATES=$(aws elbv2 describe-target-health \
-              --target-group-arn ${{ env.TARGET_TG_ARN }} \
-              --query "TargetHealthDescriptions[].TargetHealth.State" \
-              --output text)
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.TARGET_HOST }}:8080/actuator/health)
+            echo "Health status: $STATUS"
 
-            echo "Current states: $STATES"
-
-            if echo "$STATES" | grep -q healthy; then
-              echo "Target group is healthy!"
+            if [ "$STATUS" = "200" ]; then
+              echo "Application is healthy!"
               exit 0
             fi
 
-            sleep 10
+            sleep 5
           done
 
           echo "Health check failed"
