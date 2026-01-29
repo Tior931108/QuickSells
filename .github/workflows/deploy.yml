@@ -54,6 +54,18 @@ jobs:
     needs: build-and-push
 
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v4 # deploy.sh 파일을 읽기 위해 필요
+
+      - name: Copy deploy.sh to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "./deploy.sh" # 인텔리제이(프로젝트 루트)에 있는 파일
+          target: "~/"          # EC2의 홈 디렉토리로 복사
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -61,14 +73,10 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # ECR 로그인
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+           docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
-            # 최신 이미지 Pull
-            docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
-
-            # 무중단 배포 스크립트 실행
-            # deploy.sh 내부에서 필요한 환경변수를 export로 주입합니다.
+            # 환경변수 주입
             export DB_URL="${{ secrets.DB_URL }}"
             export DB_USERNAME="${{ secrets.DB_USERNAME }}"
             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
@@ -81,7 +89,8 @@ jobs:
             export AWS_SECRET_KEY="${{ secrets.AWS_SECRET_KEY }}"
             export AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}"
 
+            # 파일 권한 부여 및 실행
+            chmod +x ~/deploy.sh
             bash ~/deploy.sh
 
-            #  미사용 이미지 삭제
             docker image prune -af
