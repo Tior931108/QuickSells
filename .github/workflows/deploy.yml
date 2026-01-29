@@ -24,7 +24,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: 'gradle'
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -44,6 +43,7 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
+          # 커밋 해시 태그와 latest 태그 두 개를 동시에 빌드
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
@@ -54,18 +54,6 @@ jobs:
     needs: build-and-push
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Copy deploy.sh to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "deploy.sh"
-          target: "~/"
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -73,14 +61,16 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # 1. ECR 로그인 및 이미지 최신화
+            # 1. ECR 로그인
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+            
+            # 2. 최신 이미지 Pull
             docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
-
-            # 2. 기존 컨테이너 중지 (에러 무시)
+            
+            # 3. 기존 컨테이너 제거
             docker rm -f quicksells-8081 2>/dev/null || true
-
-            # 3. 새 컨테이너 실행 (환경변수 직접 주입으로 JWT 오류 원천 차단)
+            
+            # 4. 새 컨테이너 실행 (환경변수를 직접 전달)
             docker run -d \
               --name quicksells-8081 \
               -p 8081:8080 \
@@ -97,6 +87,6 @@ jobs:
               -e AWS_SECRET_KEY="${{ secrets.AWS_SECRET_KEY }}" \
               -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
               ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
-
-            # 4. 사용하지 않는 이미지 정리
+            
+            # 5. 미사용 이미지 정리
             docker image prune -af
