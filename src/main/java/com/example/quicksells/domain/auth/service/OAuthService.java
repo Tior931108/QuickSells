@@ -6,6 +6,8 @@ import com.example.quicksells.common.exception.CustomException;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
 import com.example.quicksells.domain.auth.model.request.AuthSocialSignupRequest;
 import com.example.quicksells.domain.auth.model.response.AuthSocialSignupResponse;
+import com.example.quicksells.domain.payment.entity.PointWallet;
+import com.example.quicksells.domain.payment.repository.PointWalletRepository;
 import com.example.quicksells.domain.user.entity.User;
 import com.example.quicksells.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class OAuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PointWalletRepository pointWalletRepository;
 
     @Transactional
     public AuthSocialSignupResponse completeSocialSignup(AuthUser authUser, AuthSocialSignupRequest request) {
@@ -46,6 +49,10 @@ public class OAuthService {
                 name
         );
 
-        return userRepository.save(socialUser);
+        // 소셜 가입 시에도 지갑 생성
+        User savedUser = userRepository.save(socialUser);
+        pointWalletRepository.save(new PointWallet(savedUser.getId()));
+
+        return savedUser;
     }
 }

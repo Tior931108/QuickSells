@@ -75,7 +75,7 @@ public class BurkDataController {
      * 개별 테이블별 데이터 생성
      */
     @PostMapping("/burk-data/users")
-    public ResponseEntity<String> generateUsers(@RequestParam(defaultValue = "10000") int count) {
+    public ResponseEntity<String> generateUsers(@RequestParam(defaultValue = "20") int count) {
 
         bulkDataInsertService.insertBulkUsers(count);
 
@@ -83,7 +83,7 @@ public class BurkDataController {
     }
 
     @PostMapping("/burk-data/items")
-    public ResponseEntity<String> generateItems(@RequestParam(defaultValue = "50000") int count) {
+    public ResponseEntity<String> generateItems(@RequestParam(defaultValue = "30") int count) {
 
         bulkDataInsertService.insertBulkItems(count);
 
@@ -91,7 +91,7 @@ public class BurkDataController {
     }
 
     @PostMapping("/burk-data/appraises")
-    public ResponseEntity<String> generateAppraises(@RequestParam(defaultValue = "900000") int count) {
+    public ResponseEntity<String> generateAppraises(@RequestParam(defaultValue = "60") int count) {
 
         bulkDataInsertService.insertBulkAppraises(count);
 
@@ -99,7 +99,7 @@ public class BurkDataController {
     }
 
     @PostMapping("/burk-data/deals")
-    public ResponseEntity<String> generateDeals(@RequestParam(defaultValue = "50000") int count) {
+    public ResponseEntity<String> generateDeals(@RequestParam(defaultValue = "40") int count) {
 
         bulkDataInsertService.insertBulkDeals(count);
 
@@ -107,7 +107,7 @@ public class BurkDataController {
     }
 
     @PostMapping("/burk-data/auctions")
-    public ResponseEntity<String> generateAuctions(@RequestParam(defaultValue = "50000") int count) {
+    public ResponseEntity<String> generateAuctions(@RequestParam(defaultValue = "30") int count) {
 
         bulkDataInsertService.insertBulkAuctions(count);
 

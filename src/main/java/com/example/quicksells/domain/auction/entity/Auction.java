@@ -1,5 +1,6 @@
 package com.example.quicksells.domain.auction.entity;
 
+import com.example.quicksells.common.enums.AuctionSettlementStatus;
 import com.example.quicksells.common.enums.AuctionStatusType;
 import com.example.quicksells.domain.appraise.entity.Appraise;
 import com.example.quicksells.domain.user.entity.User;
@@ -47,6 +48,10 @@ public class Auction {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private AuctionSettlementStatus settlementStatus = AuctionSettlementStatus.PENDING;
+
     public Auction(Appraise appraise, Integer bidPrice) {
         this.appraise = appraise;
         this.buyer = null;
@@ -90,4 +95,17 @@ public class Auction {
         this.isDeleted = true;
     }
 
+    /** 정산 실패 사유(운영/추적용) */
+    @Column(length = 300)
+    private String settlementFailReason;
+
+    public void markSettlementCompleted() {
+        this.settlementStatus = AuctionSettlementStatus.COMPLETED;
+        this.settlementFailReason = null;
+    }
+
+    public void markPaymentRequired(String reason) {
+        this.settlementStatus = AuctionSettlementStatus.PAYMENT_REQUIRED;
+        this.settlementFailReason = reason;
+    }
 }

@@ -16,6 +16,7 @@ import com.example.quicksells.domain.deal.entity.Deal;
 import com.example.quicksells.domain.deal.service.DealService;
 import com.example.quicksells.domain.item.entity.Item;
 import com.example.quicksells.domain.item.repository.ItemRepository;
+import com.example.quicksells.domain.payment.service.ImmediateSellSettlementService;
 import com.example.quicksells.domain.user.entity.User;
 import com.example.quicksells.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class AppraiseService {
     private final UserRepository userRepository;
     private final AuctionService auctionService;
     private final DealService dealService;
+    private final ImmediateSellSettlementService immediateSellSettlementService;
 
     /**
      * 감정 생성 (관리자 권한만 가능)
@@ -260,6 +262,13 @@ public class AppraiseService {
         appraise.updateSelected(true);
 
         Deal deal = dealService.createAppraiseDeal(appraise);
+
+         // 즉시판매 확정이면 회사가 매입 → 판매자에게 포인트 지급
+         // 구매자 유저는 존재하지 않음(회사)
+        immediateSellSettlementService.creditSeller(appraise, deal);
+
+        // 포인트 지급이 끝난 뒤 거래 완료(SOLD)
+        dealService.completeImmediateSellDeal(deal);
 
         return AppraiseImmediateSellResponse.from(appraise, deal);
     }

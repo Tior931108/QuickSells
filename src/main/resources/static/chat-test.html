@@ -367,6 +367,26 @@
         .chat-messages::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        /* 새 메시지가 있는 채팅방 강조 */
+        .room-item.has-unread {
+            background-color: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+        }
+
+        /* 배지 애니메이션 */
+        .room-item-badge {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
     </style>
 </head>
 <body>
@@ -428,6 +448,7 @@
     let currentUser = null;
     let currentRoomId = null;
     let chatRooms = [];
+    let subscribedRooms = new Set();  // 구독한 채팅방 추적
 
     const API_BASE = 'http://localhost:8080/api';
     const WS_URL = 'http://localhost:8080/ws-stomp';
@@ -450,6 +471,9 @@
             // 채팅방 목록 로드
             await loadChatRooms();
 
+            // 모든 채팅방 구독
+            subscribeToAllRooms();
+
             // UI 전환
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('chatSection').classList.add('active');
@@ -457,6 +481,87 @@
         } catch (error) {
             alert('로그인 실패: ' + error.message);
             currentToken = null;
+        }
+
+        // // 주기적으로 채팅방 목록 새로고침 (60초마다)
+        // setInterval(() => {
+        //     if (currentToken) {
+        //         loadChatRooms();
+        //     }
+        // }, 60000);  // 60초
+    }
+
+    // ==================== 모든 채팅방 구독 (개선) ====================
+    function subscribeToAllRooms() {
+        if (!stompClient || chatRooms.length === 0) return;
+
+        chatRooms.forEach(room => {
+            const roomId = room.chatRoomId;
+
+            // 중복 구독 방지
+            if (subscribedRooms.has(roomId)) return;
+
+            stompClient.subscribe(`/topic/chat/room/${roomId}`, function(message) {
+                const newMessage = JSON.parse(message.body);
+                console.log('새 메시지 수신 (백그라운드):', newMessage);
+
+                // 내가 보낸 메시지인지 확인
+                const isMySelf = newMessage.senderId === getCurrentUserId();
+
+                // 현재 보고 있는 채팅방이면 메시지 추가
+                if (currentRoomId === roomId) {
+                    const chatMessages = document.getElementById('chatMessages');
+                    const messageHTML = createMessageHTML(newMessage);
+                    chatMessages.insertAdjacentHTML('beforeend', messageHTML);
+                    scrollToBottom();
+
+                    // 읽음 처리 (내가 받은 메시지만)
+                    if (!isMySelf) {
+                        markAsRead(roomId);
+                    }
+                }
+
+                // 내가 보낸 메시지면 목록 새로고침 안함
+                if (!isMySelf) {
+                    debouncedLoadChatRooms();
+                } else {
+                    // 내가 보낸 메시지는 현재 채팅방의 마지막 메시지만 업데이트
+                    updateCurrentRoomLastMessage(newMessage.content);
+                }
+
+            }, { id: `sub-all-${roomId}` });
+
+            subscribedRooms.add(roomId);
+            console.log('채팅방 구독:', roomId);
+        });
+    }
+
+    // 현재 사용자 ID 가져오기 (JWT에서 추출)
+    function getCurrentUserId() {
+        if (!currentToken) return null;
+
+        try {
+            // JWT 디코딩 (간단 버전)
+            const base64Url = currentToken.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            const payload = JSON.parse(jsonPayload);
+            return payload.userId || payload.sub || null;
+        } catch (e) {
+            console.error('JWT 디코딩 실패:', e);
+            return null;
+        }
+    }
+
+    // 현재 채팅방의 마지막 메시지만 업데이트 (전체 목록 조회 안함)
+    function updateCurrentRoomLastMessage(content) {
+        const roomIndex = chatRooms.findIndex(r => r.chatRoomId === currentRoomId);
+        if (roomIndex >= 0) {
+            chatRooms[roomIndex].lastMessage = content;
+            displayChatRooms();  // 목록 재렌더링만
         }
     }
 
@@ -554,17 +659,18 @@
         }
 
         roomList.innerHTML = chatRooms.map(room => `
-            <div class="room-item ${room.chatRoomId === currentRoomId ? 'active' : ''}"
-                 onclick="selectChatRoom(${room.chatRoomId})">
-                <div class="room-item-name">
-                    ${room.otherUser.name} (${room.otherUser.role})
-                    ${room.unreadCount > 0 ? `<span class="room-item-badge">${room.unreadCount}</span>` : ''}
-                </div>
-                <div class="room-item-last-message">
-                    ${room.lastMessage || '메시지가 없습니다'}
-                </div>
+        <div class="room-item ${room.chatRoomId === currentRoomId ? 'active' : ''}
+                    ${room.unreadCount > 0 ? 'has-unread' : ''}"
+             onclick="selectChatRoom(${room.chatRoomId})">
+            <div class="room-item-name">
+                ${room.otherUser.name} (${room.otherUser.role})
+                ${room.unreadCount > 0 ? `<span class="room-item-badge">${room.unreadCount}</span>` : ''}
             </div>
-        `).join('');
+            <div class="room-item-last-message">
+                ${room.lastMessage || '메시지가 없습니다'}
+            </div>
+        </div>
+    `).join('');
     }
 
     // ==================== 채팅방 선택 ====================
@@ -579,15 +685,7 @@
                 return;
             }
 
-            // 이전 구독 해제
-            if (currentRoomId && stompClient) {
-                try {
-                    stompClient.unsubscribe(`sub-${currentRoomId}`);
-                } catch (e) {
-                    console.warn('구독 해제 실패:', e);
-                }
-            }
-
+            // 이전 구독 해제는 하지 않음 (백그라운드 구독 유지)
             currentRoomId = roomId;
 
             // UI 업데이트
@@ -602,8 +700,10 @@
             // 메시지 로드
             await loadMessages(roomId);
 
-            // 채팅방 구독
-            subscribeToRoom(roomId);
+            // 채팅방이 아직 구독 안됐으면 구독 (새로 생성된 경우)
+            if (!subscribedRooms.has(roomId)) {
+                subscribeToAllRooms();
+            }
 
             // 읽음 처리
             await markAsRead(roomId);
@@ -685,24 +785,71 @@
     }
 
     // ==================== 채팅방 구독 ====================
-    function subscribeToRoom(roomId) {
-        if (!stompClient) return;
+    function subscribeToAllRooms() {
+        if (!stompClient || chatRooms.length === 0) return;
 
-        stompClient.subscribe(`/topic/chat/room/${roomId}`, function(message) {
-            const newMessage = JSON.parse(message.body);
-            console.log('새 메시지 수신:', newMessage);
+        chatRooms.forEach(room => {
+            const roomId = room.chatRoomId;
 
-            // innerHTML += 대신 insertAdjacentHTML 사용 (깜빡임 제거)
-            const chatMessages = document.getElementById('chatMessages');
-            const messageHTML = createMessageHTML(newMessage);
-            chatMessages.insertAdjacentHTML('beforeend', messageHTML);
+            if (subscribedRooms.has(roomId)) return;
 
-            scrollToBottom();
+            stompClient.subscribe(`/topic/chat/room/${roomId}`, function(message) {
+                const newMessage = JSON.parse(message.body);
+                const isMySelf = newMessage.senderId === getCurrentUserId();
+                console.log('새 메시지 수신 (백그라운드):', newMessage);
 
-            // 읽음 처리 (내가 받은 메시지)
-            markAsRead(roomId);
+                // 현재 보고 있는 채팅방이면 메시지 추가
+                if (currentRoomId === roomId) {
+                    const chatMessages = document.getElementById('chatMessages');
+                    const messageHTML = createMessageHTML(newMessage);
+                    chatMessages.insertAdjacentHTML('beforeend', messageHTML);
+                    scrollToBottom();
 
-        }, { id: `sub-${roomId}` });
+                    // 받은 메시지만 즉시 읽음 처리
+                    if (!isMySelf) {
+                        markAsReadSilently(roomId);  // API 호출하지만 목록 새로고침 안함
+                    }
+                }
+
+                // 목록 업데이트 (받은 메시지만)
+                if (!isMySelf) {
+                    debouncedLoadChatRooms();
+                } else {
+                    updateCurrentRoomLastMessage(newMessage.content);
+                }
+
+            }, { id: `sub-all-${roomId}` });
+
+            subscribedRooms.add(roomId);
+            console.log('채팅방 구독:', roomId);
+        });
+    }
+
+    // 조용한 읽음 처리 (목록 새로고침 안함)
+    async function markAsReadSilently(roomId) {
+        try {
+            await fetch(`${API_BASE}/chat/rooms/${roomId}/read`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + currentToken
+                }
+            });
+            // 목록 새로고침 안함!
+        } catch (error) {
+            console.error('읽음 처리 실패:', error);
+        }
+    }
+
+    // 디바운싱 함수 추가 (1초 동안 여러 호출이 와도 1번만 실행)
+    let loadChatRoomsTimeout = null;
+    function debouncedLoadChatRooms() {
+        if (loadChatRoomsTimeout) {
+            clearTimeout(loadChatRoomsTimeout);
+        }
+
+        loadChatRoomsTimeout = setTimeout(() => {
+            loadChatRooms();
+        }, 1000);  // 1초 대기
     }
 
     // ==================== 메시지 전송 ====================
@@ -786,6 +933,10 @@
             }
 
             displayChatRooms();
+
+            // 새 채팅방 구독
+            subscribeToAllRooms();
+
             await selectChatRoom(newRoom.chatRoomId);
 
         } catch (error) {

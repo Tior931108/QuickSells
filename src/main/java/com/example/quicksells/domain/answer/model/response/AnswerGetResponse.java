@@ -10,9 +10,9 @@ import java.time.LocalDateTime;
 public class AnswerGetResponse {
 
     private final Long answerId;
-    private final Long askInd;
+    private final Long askId;
     private final String title;
-    private final String Content;
+    private final String content;
     private final String adminName;
     private final LocalDateTime createdAt;
 

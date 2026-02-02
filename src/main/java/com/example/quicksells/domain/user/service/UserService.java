@@ -7,11 +7,12 @@ import com.example.quicksells.common.redis.service.TokenBlackListService;
 import com.example.quicksells.common.util.JwtUtil;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
 import com.example.quicksells.domain.user.entity.User;
+import com.example.quicksells.domain.user.model.request.UserPasswordUpdateRequest;
 import com.example.quicksells.domain.user.model.request.UserRoleUpdateRequest;
-import com.example.quicksells.domain.user.model.request.UserUpdateRequest;
+import com.example.quicksells.domain.user.model.request.UserProfileUpdateRequest;
 import com.example.quicksells.domain.user.model.response.UserGetAllResponse;
 import com.example.quicksells.domain.user.model.response.UserGetResponse;
-import com.example.quicksells.domain.user.model.response.UserUpdateResponse;
+import com.example.quicksells.domain.user.model.response.UserProfileUpdateResponse;
 import com.example.quicksells.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -48,26 +49,17 @@ public class UserService {
      * 내 정보 수정 기능
      *
      * @param request 내 정보 수정 요청 정보
-     * @return 변경된 내 정봊
+     * @return 변경된 내 정보
      * @throws CustomException 사용자 체크, 요청에 값이없다면 예외, 전화번호 중복 예외
      */
     @Transactional
-    public UserUpdateResponse update(AuthUser authUser, UserUpdateRequest request) {
+    public UserProfileUpdateResponse updateProfile(AuthUser authUser, UserProfileUpdateRequest request) {
 
         // 사용자 체크
         User user = findByUserIdOrException(authUser.getId());
 
         // request 값이 비었을 경우 예외
         if (request.isAllFieldEmpty()) throw new CustomException(ExceptionCode.NO_UPDATE_FIELD);
-
-        // 비빌번호 변경 로직
-        if (request.getPassword() != null) {
-            // 이전과 동일한 비밀번호인지 체크
-            validateNewPassword(request.getPassword(), user.getPassword());
-            // 요청 비밀번호 인코딩으로 저장
-            String encodedPassword = passwordEncoder.encode(request.getPassword());
-            user.updatePassword(encodedPassword);
-        }
 
         // 핸드폰 변경 로직
         if (request.getPhone() != null && !request.getPhone().equals(user.getPhone())) {
@@ -82,7 +74,28 @@ public class UserService {
             user.updateAddress(request.getAddress());
         }
 
-        return UserUpdateResponse.from(user);
+        return UserProfileUpdateResponse.from(user);
+    }
+
+    /**
+     * 비밀번호 변경 기능
+     *
+     * @throws CustomException 사용자 체크, 현재 비밀번호 체크, 이전 비밀번호와 동일 여부 체크
+     */
+    @Transactional
+    public void updatePassword(AuthUser authUser,UserPasswordUpdateRequest request) {
+
+        User user = findByUserIdOrException(authUser.getId());
+
+        // 현재 비밀번호 체크
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new CustomException(ExceptionCode.WRONG_PASSWORD);
+        }
+
+        // 이전 비밀번호와 동일 여부 체크
+        validateNewPassword(request.getNewPassword(), user.getPassword());
+
+        user.updatePassword( passwordEncoder.encode(request.getNewPassword()));
     }
 
     /**
@@ -124,7 +137,7 @@ public class UserService {
      * @return 변경된 유저 정보
      */
     @Transactional
-    public UserUpdateResponse updateRole(Long userId, UserRoleUpdateRequest request) {
+    public UserProfileUpdateResponse updateRole(Long userId, UserRoleUpdateRequest request) {
 
         // 사용자 체크
         User user = findByUserIdOrException(userId);
@@ -132,7 +145,7 @@ public class UserService {
         // 권한 수정
         user.updateRole(request.getRole());
 
-        return UserUpdateResponse.from(user);
+        return UserProfileUpdateResponse.from(user);
     }
 
     // 비밀빈호 검증
@@ -156,4 +169,6 @@ public class UserService {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ExceptionCode.NOT_FOUND_USER));
     }
+
+
 }

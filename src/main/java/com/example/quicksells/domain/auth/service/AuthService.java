@@ -8,6 +8,8 @@ import com.example.quicksells.domain.auth.model.request.AuthLoginRequest;
 import com.example.quicksells.domain.auth.model.request.AuthSignupRequest;
 import com.example.quicksells.domain.auth.model.response.AuthLoginResponse;
 import com.example.quicksells.domain.auth.model.response.AuthSignupResponse;
+import com.example.quicksells.domain.payment.entity.PointWallet;
+import com.example.quicksells.domain.payment.repository.PointWalletRepository;
 import com.example.quicksells.domain.user.entity.User;
 import com.example.quicksells.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final TokenBlackListService tokenBlackListService;
+    private final PointWalletRepository pointWalletRepository;
 
     /**
      * 회원가입 기능
@@ -46,6 +49,9 @@ public class AuthService {
         User user = new User(request.getEmail(), passwordEncoder.encode(request.getPassword()), request.getName(), request.getPhone(), request.getAddress(), request.getBirth());
 
         User savedUser = userRepository.save(user);
+
+        // 유저 생성 시 지갑도 같이 생성, 결제/정산/입찰 로직에서 "지갑 없음" 케이스를 줄이기 위함.
+        pointWalletRepository.save(new PointWallet(savedUser.getId()));
 
         return AuthSignupResponse.from(savedUser);
     }

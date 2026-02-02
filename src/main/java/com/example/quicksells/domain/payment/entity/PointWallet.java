@@ -1,5 +1,7 @@
 package com.example.quicksells.domain.payment.entity;
 
+import com.example.quicksells.common.enums.ExceptionCode;
+import com.example.quicksells.common.exception.CustomException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -59,7 +61,7 @@ public class PointWallet {
      */
     public void increaseBalance(long amount) {
         if (amount <= 0) {
-            throw new IllegalArgumentException("충전 포인트는 0보다 커야 합니다.");
+            throw new CustomException(ExceptionCode.INVALID_CHARGE_AMOUNT);
         }
         this.availableBalance += amount;
     }
@@ -69,10 +71,11 @@ public class PointWallet {
      */
     public void decreaseBalance(long amount) {
         if (amount <= 0) {
-            throw new IllegalArgumentException("차감 포인트는 0보다 커야 합니다.");
+            throw new CustomException(ExceptionCode.INVALID_PAYMENT_AMOUNT);
         }
         if (this.availableBalance < amount) {
-            throw new IllegalStateException("포인트 잔액이 부족합니다.");
+            // 정책: 잔액 부족은 비즈니스 예외로 통일
+            throw new CustomException(ExceptionCode.INSUFFICIENT_BALANCE);
         }
         this.availableBalance -= amount;
     }

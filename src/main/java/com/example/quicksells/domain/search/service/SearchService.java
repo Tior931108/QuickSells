@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 public class SearchService {
 
-    private final KeywordService keywordService;
+    private final SearchRankingSnapshotService searchRankingSnapshotService;
     private final SearchCacheService searchCacheService;
 
     /**
@@ -25,7 +25,7 @@ public class SearchService {
      * @param pageable 페이징 정보
      * @return 상품 목록 검색 결과
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public Page<SearchGetResponse> search(AuthUser authUser, String keyword, Pageable pageable) {
 
         //로그인 예외처리
@@ -36,8 +36,8 @@ public class SearchService {
         //검색어 공백, null 방지
         String searchKeyword = safeKeyword(keyword);
 
-        //검색어 카운트 -> DB 저장, 캐시에는 X
-        keywordService.recordKeyword(searchKeyword);
+        // 검색어 중복 방지
+        searchCacheService.notDoubleClick(String.valueOf(authUser.getId()),searchKeyword);
 
         // 캐시 적용된 상품 조회
         Page<Item> items = searchCacheService.cachedSearch(searchKeyword, pageable);

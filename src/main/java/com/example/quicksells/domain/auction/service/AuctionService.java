@@ -6,6 +6,7 @@ import com.example.quicksells.common.enums.ExceptionCode;
 import com.example.quicksells.common.exception.CustomException;
 import com.example.quicksells.domain.appraise.entity.Appraise;
 import com.example.quicksells.domain.appraise.repository.AppraiseRepository;
+import com.example.quicksells.domain.auction.model.dto.BidInfo;
 import com.example.quicksells.domain.auction.model.request.AuctionCreateRequest;
 import com.example.quicksells.domain.auction.model.request.AuctionSearchFilterRequest;
 import com.example.quicksells.domain.auction.model.request.AuctionUpdateRequest;
@@ -17,6 +18,8 @@ import com.example.quicksells.domain.auction.entity.Auction;
 import com.example.quicksells.domain.auction.repository.AuctionRepository;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
 import com.example.quicksells.domain.deal.service.DealService;
+import com.example.quicksells.domain.payment.entity.PointWallet;
+import com.example.quicksells.domain.payment.service.PointWalletService;
 import com.example.quicksells.domain.user.entity.User;
 import com.example.quicksells.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +28,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Clock;
 import java.time.LocalDateTime;
 
@@ -36,9 +38,9 @@ public class AuctionService {
     private final AuctionRepository auctionRepository;
     private final AppraiseRepository appraiseRepository;
     private final UserRepository userRepository;
-    private final AuctionCloseService auctionCloseService;
     private final DealService dealService;
     private final ApplicationEventPublisher eventPublisher;
+    private final PointWalletService pointWalletService;
 
     @Transactional
     public AuctionCreateResponse saveAuction(AuctionCreateRequest request) {
@@ -77,9 +79,6 @@ public class AuctionService {
     @Transactional(readOnly = true)
     public AuctionGetResponse getAuction(Long auctionId) {
 
-        // 경매 종료 여부 확인 후 결과
-        auctionCloseService.auctionIsCloseCheckResult(auctionId);
-
         // 경매 상세 조회
         Auction foundAuction = auctionRepository.findByIdAndStatusAndEndTimeAfter(auctionId, AuctionStatusType.AUCTIONING, LocalDateTime.now(Clock.systemDefaultZone()))
                 .orElseThrow(() -> new CustomException(ExceptionCode.NOT_FOUND_AUCTION));
@@ -90,9 +89,6 @@ public class AuctionService {
     @RedissonLock
     @Transactional
     public AuctionUpdateResponse updateBidPrice(Long auctionId, AuctionUpdateRequest request, AuthUser authUser) {
-
-        // 경매 종료 여부 확인 후 결과
-        auctionCloseService.auctionIsCloseCheckResult(auctionId);
 
         // 경매 조회
         Auction foundAuction = auctionRepository.findByIdAndStatusAndEndTimeAfter(auctionId, AuctionStatusType.AUCTIONING, LocalDateTime.now(Clock.systemDefaultZone()))
@@ -111,9 +107,23 @@ public class AuctionService {
         // 경매 입찰
         foundAuction.update(foundBuyer, request.getBidPrice());
 
+        // 경매 정보
+        BidInfo bidInfo = new BidInfo(
+                foundAuction.getId(),
+                foundBuyer.getName(),
+                foundAuction.getBidPrice()
+        );
+
+        // 잔액 검증(포인트 차감은 안됨)
+        PointWallet buyerWallet = pointWalletService.getOrCreate(foundBuyer.getId());
+        if (buyerWallet.getAvailableBalance() < request.getBidPrice()) {
+            throw new CustomException(ExceptionCode.INSUFFICIENT_BALANCE);
+        }
+
+        // 이벤트 퍼블리싱
+        eventPublisher.publishEvent(bidInfo);
+
         return AuctionUpdateResponse.from(foundAuction);
-
-
     }
 
 
@@ -122,9 +132,6 @@ public class AuctionService {
      */
     @Transactional
     public void deleteAuction(Long auctionId) {
-
-        // 경매 종료 여부 확인 후 결과
-        auctionCloseService.auctionIsCloseCheckResult(auctionId);
 
         // 경매 조회
         Auction foundAuction = auctionRepository.findByIdAndIsDeletedFalse(auctionId)

@@ -1,16 +1,19 @@
 package com.example.quicksells.domain.auth.service;
 
-import jakarta.mail.internet.MimeMessage;
 import org.springframework.stereotype.Service;
-
-import java.util.concurrent.CompletableFuture;
 
 @Service
 public interface MailService {
 
-    MimeMessage createMail(String mail);
+    // 인증 번호
+    void sendCodeMail(String email);
 
     boolean verifyCode(String email, int code);
 
-    CompletableFuture<Integer> sendMail(String mail);
+    // 임시 비밀번호
+    String createTemporaryPassword(String email);
+
+    void sendTemporaryPasswordMail(String email, String tempPassword);
+
+    boolean verifyTemporaryPassword(String email, String tempPassword);
 }

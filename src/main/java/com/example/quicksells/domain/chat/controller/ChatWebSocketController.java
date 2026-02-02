@@ -13,7 +13,6 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-
 import java.security.Principal;
 
 /**
@@ -45,10 +44,15 @@ public class ChatWebSocketController {
             // 1. 인증 정보 추출
             AuthUser authUser = extractAuthUser(principal);
 
-            // 2. 메시지 저장 (ChatService 활용)
+            // 2. canChat() 으로 채팅 권한 검증
+            if (!chatService.canChat(authUser.getId(), request.getChatRoomId())) {
+                return;  // WebSocket은 에러 응답 불가능함. canChat() 내에서 예외처리
+            }
+
+            // 3. 메시지 저장 (ChatService 활용)
             ChatMessageResponse response = chatService.sendMessage(request.getChatRoomId(), request, authUser);
 
-            // 3. 채팅방 구독자들에게 브로드캐스트
+            // 4. 채팅방 구독자들에게 브로드캐스트
             String destination = "/topic/chat/room/" + request.getChatRoomId();
             messagingTemplate.convertAndSend(destination, response);
 

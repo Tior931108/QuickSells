@@ -83,8 +83,18 @@ public class Deal {
         this.dealPrice = dealPrice;
     }
 
-    // 경매 생성 후 거래에 경매 업데이트
-    public void updateAuction(Auction auction) {
-        this.auction = auction;
+    /**
+     * 회사 즉시매입 완료 처리
+     *
+     * 정책:
+     * - 구매자는 시스템(회사)이므로 일반 유저 buyer는 필요 없다.
+     * - (선택) buyer 컬럼을 유지하는 경우, 운영자(ADMIN) 계정을 buyer로 저장할 수 있다.
+     */
+    public void completeInstantSaleByCompany(User adminBuyer) {
+        if (this.status != StatusType.ON_SALE) {
+            throw new CustomException(ExceptionCode.NOT_DEAL_ON_SALE);
+        }
+
+        this.status = StatusType.SOLD;
     }
 }

@@ -4,11 +4,12 @@ import com.example.quicksells.common.model.CommonResponse;
 import com.example.quicksells.common.model.PageResponse;
 import com.example.quicksells.common.util.JwtUtil;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
+import com.example.quicksells.domain.user.model.request.UserPasswordUpdateRequest;
 import com.example.quicksells.domain.user.model.request.UserRoleUpdateRequest;
-import com.example.quicksells.domain.user.model.request.UserUpdateRequest;
+import com.example.quicksells.domain.user.model.request.UserProfileUpdateRequest;
 import com.example.quicksells.domain.user.model.response.UserGetAllResponse;
 import com.example.quicksells.domain.user.model.response.UserGetResponse;
-import com.example.quicksells.domain.user.model.response.UserUpdateResponse;
+import com.example.quicksells.domain.user.model.response.UserProfileUpdateResponse;
 import com.example.quicksells.domain.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,12 +56,21 @@ public class UserController {
      */
     @Operation(summary = "내 정보 수정")
     @PatchMapping("/users/me")
-    public ResponseEntity<CommonResponse> update(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestBody UserUpdateRequest request) {
+    public ResponseEntity<CommonResponse> updateProfile(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestBody UserProfileUpdateRequest request) {
 
-        UserUpdateResponse response = userService.update(authUser, request);
+        UserProfileUpdateResponse response = userService.updateProfile(authUser, request);
 
         return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("내 정보 수정 성공하셨습니다.", response));
 
+    }
+
+    @Operation(summary = "비밀번호 변경")
+    @PatchMapping("/users/me/password")
+    public ResponseEntity<CommonResponse> updatePassword(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestBody UserPasswordUpdateRequest request) {
+
+        userService.updatePassword(authUser, request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("비밀번호 변경 성공하셨습니다."));
     }
 
     /**
@@ -102,7 +112,7 @@ public class UserController {
     @PatchMapping("/admin/users/{userId}")
     public ResponseEntity<CommonResponse> updateRole(@PathVariable Long userId, @Valid @RequestBody UserRoleUpdateRequest request) {
 
-        UserUpdateResponse response = userService.updateRole(userId, request);
+        UserProfileUpdateResponse response = userService.updateRole(userId, request);
 
         return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("유저 권한 변경 성공하셨습니다.", response));
     }

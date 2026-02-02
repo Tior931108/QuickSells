@@ -4,6 +4,7 @@ import com.example.quicksells.common.annotation.RedissonLock;
 import com.example.quicksells.common.enums.ExceptionCode;
 import com.example.quicksells.common.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 @Order(1)
 @RequiredArgsConstructor
+@Slf4j
 public class RedissonLockAop {
 
     private final RedissonClient redisson;
@@ -50,6 +52,8 @@ public class RedissonLockAop {
             return joinPoint.proceed(); // 비즈니스 로직 실행
 
         } catch (InterruptedException interruptedException) {
+
+            log.warn("인터럽트 에러 발생 - {}", interruptedException.getMessage());
             // 인터럽트 상태 복구
             Thread.currentThread().interrupt();
             // 복구하는 과정에서 로직 수행을 막음

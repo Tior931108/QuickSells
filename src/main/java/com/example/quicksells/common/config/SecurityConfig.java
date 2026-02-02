@@ -83,7 +83,8 @@ public class SecurityConfig {
                                 "/payment-success.html",
                                 "/payment-fail.html"
                         ).permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        //log monitoring prometheus
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Spring Security 필터보다 JWT 필터를 먼저 실행

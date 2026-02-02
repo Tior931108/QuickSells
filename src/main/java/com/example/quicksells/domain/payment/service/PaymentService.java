@@ -29,6 +29,7 @@ public class PaymentService {
     private final PointWalletRepository pointWalletRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final TossPaymentsClient tossPaymentsClient;
+    private final PointWalletService pointWalletService;
 
     /**
      * 주문 생성(READY)
@@ -52,7 +53,7 @@ public class PaymentService {
         Payment payment = new Payment(userId, orderId, request.getAmount());
         paymentRepository.save(payment);
 
-        return new PaymentOrderCreateResponse(orderId, request.getAmount()); // 정적메서드 처리 필요
+        return PaymentOrderCreateResponse.from(payment);
     }
 
     /**
@@ -108,8 +109,7 @@ public class PaymentService {
             Payment savedPayment = paymentRepository.save(payment);
 
             // 지갑 생성
-            PointWallet wallet = pointWalletRepository.findById(userId)
-                    .orElseGet(() -> pointWalletRepository.save(new PointWallet(userId)));
+            PointWallet wallet = pointWalletService.getOrCreate(userId);
 
             // 잔액 충전
             wallet.increaseBalance(savedPayment.getAmount().longValue());
@@ -124,14 +124,7 @@ public class PaymentService {
             );
             pointTransactionRepository.save(tx);
 
-            return new PaymentConfirmResponse(
-                    savedPayment.getId(),
-                    savedPayment.getOrderId(),
-                    savedPayment.getPaymentKey(),
-                    savedPayment.getAmount(),
-                    savedPayment.getApprovedAt(),
-                    savedWallet.getAvailableBalance()
-            ); // 정적 메서드 처리 필요
+            return PaymentConfirmResponse.from(payment, wallet);
 
         } catch (Exception dbException) {
             /**

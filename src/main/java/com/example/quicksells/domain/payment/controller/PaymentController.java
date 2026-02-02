@@ -4,9 +4,9 @@ import com.example.quicksells.common.model.CommonResponse;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
 import com.example.quicksells.domain.payment.model.request.PaymentConfirmRequest;
 import com.example.quicksells.domain.payment.model.request.PaymentOrderCreateRequest;
+import com.example.quicksells.domain.payment.model.response.PaymentConfigResponse;
 import com.example.quicksells.domain.payment.model.response.PaymentConfirmResponse;
 import com.example.quicksells.domain.payment.model.response.PaymentOrderCreateResponse;
-import com.example.quicksells.domain.payment.model.response.TossClientKeyResponse;
 import com.example.quicksells.domain.payment.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +41,7 @@ public class PaymentController {
     public ResponseEntity<CommonResponse> createOrder(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestBody PaymentOrderCreateRequest request) {
 
         PaymentOrderCreateResponse response = paymentService.createOrder(authUser.getId(), request);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success("주문 생성을 성공했습니다.", response));
     }
 
@@ -61,6 +62,7 @@ public class PaymentController {
     public ResponseEntity<CommonResponse> confirm(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestBody PaymentConfirmRequest request) {
 
         PaymentConfirmResponse response = paymentService.confirm(authUser.getId(), request);
+
         return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("결제 승인을 성공했습니다.", response));
     }
 
@@ -77,7 +79,7 @@ public class PaymentController {
     @GetMapping("/config")
     public ResponseEntity<CommonResponse> config() {
 
-        return ResponseEntity.ok(CommonResponse.success("토스 설정 조회 성공!", new TossClientKeyResponse(tossClientKey)));
+        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("토스 설정 조회 성공!", PaymentConfigResponse.from(tossClientKey)));
     }
 
 }

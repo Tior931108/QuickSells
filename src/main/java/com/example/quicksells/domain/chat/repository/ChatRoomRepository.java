@@ -32,4 +32,17 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
             "  AND cr.type = :type " +
             "ORDER BY cr.updatedAt DESC")
     List<ChatRoom> findByUserIdAndType(@Param("userId") Long userId, @Param("type") ChatRoomType type);
+
+    /**
+     * 사용자 ID로 채팅방 조회 (Fetch Join)
+     * - user1, user2, deal을 한 번에 조회
+     */
+    @Query("SELECT DISTINCT cr FROM ChatRoom cr " +
+            "LEFT JOIN FETCH cr.user1 " +
+            "LEFT JOIN FETCH cr.user2 " +
+            "LEFT JOIN FETCH cr.deal " +
+            "WHERE cr.isDeleted = false " +
+            "AND (cr.user1.id = :userId OR cr.user2.id = :userId) " +
+            "ORDER BY cr.updatedAt DESC")
+    List<ChatRoom> findByUserIdWithUsers(@Param("userId") Long userId);
 }

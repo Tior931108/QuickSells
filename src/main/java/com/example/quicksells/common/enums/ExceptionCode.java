@@ -61,6 +61,7 @@ public enum ExceptionCode {
     NO_UPDATE_FIELD(HttpStatus.BAD_REQUEST, "수정할 정보가 없습니다"),
     INVALID_USER_ROLE(HttpStatus.BAD_REQUEST, "유효하지 않은 사용자 권한입니다."), //UserRole
     SAME_AS_OLD_PASSWORD(HttpStatus.BAD_REQUEST, "이전 비밀번호와 동일합니다."),
+    WRONG_PASSWORD(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다."),
     CONFLICT_AUCTION(HttpStatus.CONFLICT, "중복된 경매입니다."),
     CONFLICT_WISHLIST(HttpStatus.CONFLICT, "중복된 관심 목록입니다."),
 
@@ -95,6 +96,9 @@ public enum ExceptionCode {
     NOT_FOUND_PAYMENT(HttpStatus.NOT_FOUND, "결제 정보를 찾을 수 없습니다."),
     INVALID_PAYMENT_AMOUNT(HttpStatus.BAD_REQUEST, "결제 금액이 올바르지 않습니다."),
     DUPLICATE_PAYMENT_KEY(HttpStatus.CONFLICT, "이미 처리된 결제입니다."),
+    NOT_FOUND_WALLET(HttpStatus.NOT_FOUND, "지갑 정보를 찾을 수 없습니다."),
+    AUCTION_SETTLEMENT_PAYMENT_REQUIRED(HttpStatus.PAYMENT_REQUIRED, "낙찰 정산 실패: 포인트가 부족합니다. 추가 충전 후 재정산이 필요합니다."),
+    INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "포인트가 부족합니다."),
 
     /**
      * 토스 승인(confirm) 요청 자체가 실패한 경우
@@ -120,6 +124,8 @@ public enum ExceptionCode {
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."),
     CHAT_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다."),
     CHAT_BETWEEN_USERS_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "일반 사용자는 구매자와 판매자 관계이며 경매 낙찰시 채팅 가능합니다."),
+    NOT_FOUND_BUYER(HttpStatus.NOT_FOUND, "구매자 정보가 없습니다."),
+    NOT_FOUND_SELLER(HttpStatus.NOT_FOUND, "판매자 정보가 없습니다."),
     NOT_MATCHED_CHAT_USER(HttpStatus.BAD_REQUEST, "해당 사용자는 이 채팅방의 참여자가 아닙니다"),
     INVALID_CHAT_ROOM_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 채팅방 타입입니다."),
     NOT_FOUND_PRINCIPAL(HttpStatus.NOT_FOUND, "인증 정보가 없습니다."),

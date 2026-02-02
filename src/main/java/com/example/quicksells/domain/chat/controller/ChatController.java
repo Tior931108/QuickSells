@@ -31,16 +31,34 @@ public class ChatController {
     private final ChatService chatService;
 
     /**
-     * 채팅방 생성 또는 조회
+     * USER_ADMIN 채팅방 생성 또는 조회
+     * - 일반 사용자 ↔ 관리자/감정사
      * - 이미 존재하면 기존 채팅방 반환
-     * - 없으면 새로 생성
-     * - 유저-유저 채팅 시도 시 403 에러
+     * - 일반 사용자끼리는 채팅 불가 (403 에러)
      */
-    @Operation(summary = "채팅방 생성 또는 조회", description = "상대방과의 채팅방을 생성하거나 기존 채팅방을 반환합니다. " + "일반 사용자끼리는 채팅할 수 없습니다.")
+    @Operation(summary = "사용자 - 관리자 채팅방 생성 또는 조회", description = "상대방과의 채팅방을 생성하거나 기존 채팅방을 반환합니다. " + "일반 사용자끼리는 채팅할 수 없습니다.")
     @PostMapping("/chat/rooms")
     public ResponseEntity<CommonResponse> createOrGetChatRoom(@Valid @RequestBody ChatRoomCreateRequest request, @AuthenticationPrincipal AuthUser authUser) {
 
         ChatRoomResponse response = chatService.createOrGetChatRoom(request, authUser);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success("채팅방 생성/조회에 성공했습니다.", response));
+    }
+
+    /**
+     * BUYER_SELLER 채팅방 생성 (경매 낙찰 후)
+     * - 구매자 ↔ 판매자
+     * - 경매 낙찰 확인 필수:
+     *   1. AppraiseStatus = AUCTION
+     *   2. AuctionStatusType = SUCCESSFUL_BID
+     * - 구매자 또는 판매자만 호출 가능
+     * - 이미 존재하면 기존 채팅방 반환
+     */
+    @Operation(summary = "구매자-판매자 채팅방 생성 (경매 낙찰 후)", description = "경매 낙찰 후 구매자와 판매자가 채팅할 수 있는 채팅방을 생성합니다. " + "낙찰 전이거나 구매자/판매자가 아니면 403 에러가 발생합니다.")
+    @PostMapping("/chat/rooms/buyer-seller/{dealId}")
+    public ResponseEntity<CommonResponse> createBuyerSellerChatRoom(@PathVariable Long dealId, @AuthenticationPrincipal AuthUser authUser) {
+
+        ChatRoomResponse response = chatService.createBuyerSellerChatRoom(dealId, authUser);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success("채팅방 생성/조회에 성공했습니다.", response));
     }
@@ -76,8 +94,7 @@ public class ChatController {
      * 메시지 전송
      * - chatRoomId는 URL 경로에서 받으므로 Request Body의 chatRoomId는 무시
      */
-    @Operation(summary = "메시지 전송",
-            description = "채팅방에 메시지를 전송합니다.")
+    @Operation(summary = "메시지 전송", description = "채팅방에 메시지를 전송합니다.")
     @PostMapping("/chat/rooms/{id}/messages")
     public ResponseEntity<CommonResponse> sendMessage(@PathVariable Long id, @Valid @RequestBody ChatMessageRequest request, @AuthenticationPrincipal AuthUser authUser) {
 
@@ -112,6 +129,6 @@ public class ChatController {
 
         chatService.markMessagesAsRead(id, authUser);
 
-        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("메시지를 읽었습니다."));
+        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("메시지를 읽음에 성공했습니다."));
     }
 }

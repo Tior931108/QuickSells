@@ -180,4 +180,11 @@ public class DealService {
             throw new CustomException(ExceptionCode.ACCESS_DENIED_DEAL);
         }
     }
+
+    @Transactional
+    public void completeImmediateSellDeal(Deal deal) {
+        // 즉시판매 확정 시점에 거래 완료 처리
+        deal.updateForAppraise(StatusType.SOLD, deal.getDealPrice());
+        dealRepository.save(deal);
+    }
 }

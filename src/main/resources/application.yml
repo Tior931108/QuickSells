@@ -84,3 +84,9 @@ toss:
     base-url: https://api.tosspayments.com
     client-key: ${TOSS_CLIENT_KEY}
     secret-key: ${TOSS_SECRET_KEY}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "prometheus"

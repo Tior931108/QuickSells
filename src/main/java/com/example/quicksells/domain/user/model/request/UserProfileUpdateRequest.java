@@ -10,12 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(description = "유저 정보 변경")
-public class UserUpdateRequest {
-
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+=\\-\\[\\]{};':\"\\\\|,.<>/?]).{10,}$",
-            message = "비밀번호는 대소문자, 숫자, 특수문자를 포함한 10자 이상이어야 합니다.")
-    @Schema(description = "비밀번호 변경")
-    private String password;
+public class UserProfileUpdateRequest {
 
     @Pattern(regexp = "^010-\\d{4}-\\d{4}$",
             message = "전화번호는 010-XXXX-XXXX 형식이어야 합니다.")
@@ -27,5 +22,5 @@ public class UserUpdateRequest {
     @Schema(description = "주소 변경")
     private String address;
 
-    public boolean isAllFieldEmpty() {return password == null && phone == null && address == null;}
+    public boolean isAllFieldEmpty() {return phone == null && address == null;}
 }
