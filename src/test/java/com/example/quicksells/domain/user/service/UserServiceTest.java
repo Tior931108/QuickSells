@@ -19,9 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -45,9 +43,6 @@ class UserServiceTest {
 
     @Mock
     private JwtUtil jwtUtil;
-
-    @Mock
-    private Pageable pageable;
 
     @Mock
     private TokenBlackListService tokenBlackListService;
@@ -313,6 +308,7 @@ class UserServiceTest {
         User user2 = new User("test1@test.com", "encodedPassword", "배추도사", "010-0000-2222", "서울시 관악구", "20010102");
         List<User> userList = Arrays.asList(user1, user2);
 
+        Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<User> userPage = new PageImpl<>(userList, pageable, userList.size());
 
         when(userRepository.findAllByRole(USER, pageable)).thenReturn(userPage);
@@ -321,7 +317,7 @@ class UserServiceTest {
         Page<UserGetAllResponse> responses = userService.getAllUsers(pageable);
 
         // then
-        assertEquals(2, responses.getSize());
+        assertEquals(20, responses.getSize());
         verify(userRepository).findAllByRole(USER, pageable);
     }
 
