@@ -84,10 +84,15 @@ jobs:
             docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
             docker rm -f quicksells-app 2>/dev/null || true
             
+            # 로그 디렉토리 권한 설정 (Filebeat가 읽을 수 있도록)
+            sudo mkdir -p /home/ubuntu/logs
+            sudo chown -R ubuntu:ubuntu /home/ubuntu/logs
+
             docker run -d \
               --name quicksells-app \
               --network host \
               --restart always \
+              -v /home/ubuntu/logs:/home/ubuntu/logs \
               -e DB_URL="${{ secrets.DB_URL }}" \
               -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
               -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
@@ -101,7 +106,7 @@ jobs:
               -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
               -e TOSS_CLIENT_KEY="${{ secrets.TOSS_CLIENT_KEY }}" \
               -e TOSS_SECRET_KEY="${{ secrets.TOSS_SECRET_KEY }}" \
-              -e LOGSTASH_DESTINATION="${{ secrets.INFRA_SERVER_IP }}:5001" \
+              -e LOGGING_FILE_PATH="/home/ubuntu/logs/quicksells.log" \
               -e PROMETHEUS_PATH="/actuator/prometheus" \
               ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
             
@@ -111,7 +116,7 @@ jobs:
         run: |
           sleep 40
 
-      - name:  Switch Target Group
+      - name: Switch Target Group
         run: |
           aws elbv2 modify-listener \
             --listener-arn ${{ secrets.ALB_LISTENER_ARN }} \
