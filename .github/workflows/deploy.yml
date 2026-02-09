@@ -74,7 +74,7 @@ jobs:
             echo "TARGET_TG_ARN=${{ secrets.TG_BLUE_ARN }}" >> $GITHUB_ENV
           fi
 
-      # 2. 대기 중인 서버에 배포 (yml 설정 유지 + 런타임 주입)
+      # 2. 대기 중인 서버에 배포
       - name: Deploy to Target Server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -86,7 +86,7 @@ jobs:
             docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
             docker rm -f quicksells-app 2>/dev/null || true
             
-            # yml의 localhost를 무시하고 실제 환경변수를 주입하여 실행
+            # 컨테이너 실행 시 인프라 서버 주소 주입
             docker run -d \
               --name quicksells-app \
               --network host \
@@ -104,6 +104,12 @@ jobs:
               -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
               -e TOSS_CLIENT_KEY="${{ secrets.TOSS_CLIENT_KEY }}" \
               -e TOSS_SECRET_KEY="${{ secrets.TOSS_SECRET_KEY }}" \
+              \
+              # --- 인프라(ELK/Monitoring) 연결 설정 추가 ---
+              -e LOGSTASH_HOST="${{ secrets.INFRA_SERVER_IP }}" \
+              -e LOGSTASH_PORT="5001" \
+              -e PROMETHEUS_PATH="/actuator/prometheus" \
+              \
               ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
             
             docker image prune -af
