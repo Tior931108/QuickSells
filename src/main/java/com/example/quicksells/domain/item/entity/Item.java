@@ -18,28 +18,23 @@ public class Item extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-
-    @Column(name = "id", nullable = false)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "seller_id", nullable = false)
     private User seller;
 
-    @Column(name = "name", nullable = false, length = 255)
+    @Column(nullable = false)
     private String name;
 
     @Column(name = "hope_price", nullable = false)
     private Long hopePrice;
 
-    @Column(name = "description", length = 500, nullable = false)
+    @Column(length = 500, nullable = false)
     private String description;
 
-    @Column(name = "image", nullable = false)
+    @Column(nullable = false)
     private String image;
-
-    @Column(name = "selling", nullable = false)
-    private boolean selling = false;
 
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
@@ -62,10 +57,5 @@ public class Item extends BaseEntity {
 
     public void softDelete() {
         this.isDeleted = true;
-    }
-
-    // 상품 판매 완료시 false > true 변경
-    public void updateItemStatus(boolean selling) {
-        this.selling = selling;
     }
 }

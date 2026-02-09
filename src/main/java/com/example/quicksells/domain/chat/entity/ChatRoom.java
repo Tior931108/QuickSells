@@ -75,6 +75,16 @@ public class ChatRoom extends BaseEntity {
     private boolean isDeleted = false; // 삭제 여부
 
     /**
+     * 채팅방 나가기
+     * - 양쪽 다 나가면 실제 삭제 처리
+     * - 한쪽만 나가면 해당 유저만 숨김 처리
+     */
+    @Column(nullable = false, length = 10)
+    private boolean user1Left = false;
+    @Column(nullable = false, length = 10)
+    private boolean user2Left = false;
+
+    /**
      * 생성자 - USER_ADMIN 타입
      *
      * @param user1 일반 사용자
@@ -133,5 +143,47 @@ public class ChatRoom extends BaseEntity {
         }
 
         throw new CustomException(ExceptionCode.NOT_MATCHED_CHAT_USER);
+    }
+
+    // 사용자가 채팅방 나가기
+    public void leave(Long userId) {
+        if (this.user1.getId().equals(userId)) {
+            this.user1Left = true;
+        } else if (this.user2.getId().equals(userId)) {
+            this.user2Left = true;
+        }
+
+        // 양쪽 다 나가면 소프트 삭제
+        if (this.user1Left && this.user2Left) {
+            this.isDeleted = true;
+        }
+    }
+
+    // 사용자에게 표시 여부 확인
+    public boolean isVisibleTo(Long userId) {
+        if (this.isDeleted) {
+            return false;
+        }
+
+        if (this.user1.getId().equals(userId) && this.user1Left) {
+            return false;
+        }
+
+        if (this.user2.getId().equals(userId) && this.user2Left) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 삭제된 채팅방 재활성화
+     * - Soft delete된 채팅방을 다시 사용 가능하게 만듦
+     * - isDeleted = false, user1Left = false, user2Left = false로 초기화
+     */
+    public void reactivate() {
+        this.isDeleted = false;
+        this.user1Left = false;
+        this.user2Left = false;
     }
 }

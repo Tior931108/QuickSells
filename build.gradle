@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.9'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'com.example'
@@ -12,6 +13,10 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
+}
+
+jacoco {
+    toolVersion = "0.8.11"
 }
 
 repositories {
@@ -84,4 +89,71 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy 'jacocoTestReport', 'jacocoTestCoverageVerification'
 }
+
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        html.required = true
+        xml.required = true
+    }
+
+    classDirectories.setFrom(
+            files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+
+                        '**/*Application*',
+
+                        '**/controller/**',
+
+                        '**/dto/**',
+                        '**/model/**',
+                        '**/entity/**',
+
+                        '**/config/**',
+                        '**/filter/**',
+                        '**/interceptor/**',
+                        '**/aop/**',
+                        '**/scheduler/**',
+                        '**/security/**',
+                        '**/enums/**',
+                        '**/exception/**',
+                        '**/util/**',
+                        '**/aws/**',
+
+                        '**/*RepositoryImpl*',
+                        '**/Q*',
+                        '**/burkdata/**',
+                        '**/toss/**'
+                ])
+            })
+    )
+}
+
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            element = 'CLASS'
+            includes = ['**/service/**']
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.70
+            }
+
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.70
+            }
+        }
+    }
+
+    classDirectories.setFrom(jacocoTestReport.classDirectories)
+}
+
+

@@ -45,8 +45,14 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 10)
     private UserRole role;
 
-    @Column(nullable = false)
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted;
+
+    @Column(name = "password_reset_required",nullable = false)
+    private boolean passwordResetRequired;
+
+    @Column(name = "provider_id", unique = true)
+    private String providerId;
 
     // 회원가입
     public User(String email, String password, String name, String phone, String address, String birth){
@@ -59,19 +65,22 @@ public class User extends BaseEntity {
         this.role = UserRole.USER;
         this.status = UserStatus.ACTIVE;
         this.isDeleted = false;
+        this.passwordResetRequired = false;
     }
 
     // 소셜 로그인
-    public User(String email, String password, String name) {
+    public User(String email, String password, String name, String providerId) {
         this.email = email;
         this.password = password;
         this.name = name;
+        this.providerId = providerId;
         this.role = UserRole.USER;
         this.status = UserStatus.PENDING;
         this.isDeleted = false;
         this.phone = null;
         this.address = null;
         this.birth = null;
+        this.passwordResetRequired = false;
     }
 
     // 소셜 로그인 이후 추가 정보 입력
@@ -82,11 +91,19 @@ public class User extends BaseEntity {
         this.status = UserStatus.ACTIVE;
     }
 
+    public void updateTemporaryPassword(String encodedPassword, boolean resetRequired) {
+        this.password = encodedPassword;
+        this.passwordResetRequired = resetRequired;
+    }
+
     public void updatePhone(String phone) {this.phone = phone;}
 
     public void updateAddress(String address) {this.address = address;}
 
-    public void updatePassword(String encodedPassword) {this.password = encodedPassword;}
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+        this.passwordResetRequired = false;
+    }
 
     public void updateRole(String role) {this.role = UserRole.of(role);}
 

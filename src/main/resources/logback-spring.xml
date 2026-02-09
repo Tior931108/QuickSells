@@ -3,10 +3,9 @@
     <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
         <destination>127.0.0.1:5001</destination>
         --> 서비스랑 포트 번 맞게 설정
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
-        <layout class="net.logstash.logback.layout.LogstashLayout">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <timestampPattern>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampPattern>
-        </layout>
+        </encoder>
     </appender>
 
     <root level="info">

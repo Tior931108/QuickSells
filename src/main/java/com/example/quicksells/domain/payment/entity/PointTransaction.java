@@ -59,12 +59,6 @@ public class PointTransaction {
     private Long auctionId;
 
     /**
-     * 거래 생성 시각
-     */
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    /**
      * 즉시판매/거래 기반 포인트 변동 추적용
      * - 결제면 paymentId
      * - 경매면 auctionId
@@ -72,6 +66,12 @@ public class PointTransaction {
      */
     @Column(name = "deal_id")
     private Long dealId;
+
+    /**
+     * 거래 생성 시각
+     */
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     public PointTransaction(Long userId, PointTransactionType transactionType, Long amount, Long paymentId, Long auctionId, Long dealId) {
         this.userId = userId;
@@ -81,12 +81,5 @@ public class PointTransaction {
         this.auctionId = auctionId;
         this.dealId = dealId;
         this.createdAt = LocalDateTime.now();
-    }
-
-    /**
-     * 기존 호출부 호환용 (dealId 없는 기존 생성자 유지)
-     */
-    public PointTransaction(Long userId, PointTransactionType transactionType, Long amount, Long paymentId, Long auctionId) {
-        this(userId, transactionType, amount, paymentId, auctionId, null);
     }
 }

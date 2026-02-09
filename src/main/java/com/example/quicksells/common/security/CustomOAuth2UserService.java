@@ -35,10 +35,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // 리소스 서버에 사용자 정보 요청 후 리소스 객체(OAuth2User) 받아오기
         OAuth2User oAuth2User = super.loadUser(oAuth2UserRequest);
 
-        // 리소스 서버에서 넘어온 전체 속성 확인
-        Map<String, Object> attributes = oAuth2User.getAttributes();
-        attributes.forEach((key, value) -> log.info(key + ": " + value));
-
         // 어떤 소셜 서비스인지 구분하기 위한 ID 추출 (공급자: Google)
         String registrationId = oAuth2UserRequest.getClientRegistration().getRegistrationId();
 
@@ -47,18 +43,19 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             throw new CustomException(ExceptionCode.OAUTH_PROVIDER_NOT_SUPPORTED);
         }
 
+        // 구글의 고유 PK인 'sub' 추출
+        String providerId = oAuth2User.getAttribute("sub");
+
+        // 리소스 서버에서 넘어온 전체 속성 확인
+        Map<String, Object> attributes = oAuth2User.getAttributes();
         // 소셜 사용자 정보에서 데이터(이메일, 이름) 추출
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
 
-        // 이메일 권한이 없거나 정보가 없는 경우 예외 처리
-        if (email == null) {
-            throw new CustomException(ExceptionCode.OAUTH_EMAIL_NOT_FOUND);
-        }
 
         // 기존 회원이면 조회하고, 신규 회원이면 DB에 저장
-        User user = userRepository.findByEmail(email)
-                .orElseGet(() -> oAuthService.createSocialUser(email, name));
+        User user = userRepository.findByProviderId(providerId)
+                .orElseGet(() -> oAuthService.createSocialUser(email, name, providerId));
 
         // Spring Security 내부 세션에 저장할 인증 객체(AuthDetails) 생성 및 반환
         return new AuthDetails(user, attributes, Collections.singleton(new SimpleGrantedAuthority(user.getRole().getUserRole())));

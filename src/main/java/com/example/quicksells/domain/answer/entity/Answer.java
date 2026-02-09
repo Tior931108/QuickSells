@@ -34,7 +34,7 @@ public class Answer extends BaseEntity {
     @Column(nullable = false, length = 500)
     private String content;
 
-    @Column(nullable = false, length = 10)
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted; // 삭제 여부
 
     public Answer(Ask ask, User admin, String title, String content) {

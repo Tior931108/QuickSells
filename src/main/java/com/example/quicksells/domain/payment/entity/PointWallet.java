@@ -46,7 +46,7 @@ public class PointWallet {
      * - 이를 통해 포인트 음수, 이중 차감 같은 치명적 오류를 방지한다.
      */
     @Version
-    @Column(name = "version", nullable = false)
+    @Column(nullable = false)
     private Long version;
 
     public PointWallet(Long userId) {

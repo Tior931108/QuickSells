@@ -3,11 +3,13 @@ package com.example.quicksells.domain.wishlist.model.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@AllArgsConstructor
 @Schema(description = "관심 목록 삭제")
 public class OneWishListDeleteRequest {
 

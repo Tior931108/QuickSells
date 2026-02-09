@@ -65,7 +65,7 @@ public class UserController {
     }
 
     @Operation(summary = "비밀번호 변경")
-    @PatchMapping("/users/me/password")
+    @PatchMapping("/users/me/passwords")
     public ResponseEntity<CommonResponse> updatePassword(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestBody UserPasswordUpdateRequest request) {
 
         userService.updatePassword(authUser, request);

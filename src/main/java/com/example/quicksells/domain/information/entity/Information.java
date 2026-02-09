@@ -29,14 +29,14 @@ public class Information extends BaseEntity {
     @Column(nullable = false, length = 500)
     private String description;
 
-    @Column(length = 500)
+    @Column(name = "image_url",length = 500)
     private String imageUrl;
 
-    @Column(nullable = false, length = 10)
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted;
 
-    public Information(User user, String title, String description, String imageUrl) {
-        this.user = user;
+    public Information(User admin, String title, String description, String imageUrl) {
+        this.user = admin;
         this.title = title;
         this.description = description;
         this.imageUrl = imageUrl;

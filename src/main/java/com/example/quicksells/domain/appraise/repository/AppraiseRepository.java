@@ -23,7 +23,7 @@ public interface AppraiseRepository extends JpaRepository<Appraise, Long>, Appra
 
     // 상품마다 감정된 목록 조회
     @Query("SELECT a FROM Appraise a JOIN FETCH a.item WHERE a.item = :item")
-    Optional<Appraise> findByItem(@Param("item") Item item);
+    Optional<Appraise> findByItemAppraise(@Param("item") Item item);
 
     // 상품과 함께
     @Query("SELECT a FROM Appraise a JOIN FETCH a.item WHERE a.id = :appraiseId")

@@ -17,6 +17,7 @@ public class AuctionUpdateResponse {
     private final Integer bidPrice;
     private final AuctionStatusType status;
     private final LocalDateTime updatedAt;
+    private final LocalDateTime endTime;
 
     public static AuctionUpdateResponse from(Auction auction) {
         return new AuctionUpdateResponse(
@@ -26,7 +27,8 @@ public class AuctionUpdateResponse {
                 auction.getBuyer().getId(),
                 auction.getBidPrice(),
                 auction.getStatus(),
-                auction.getUpdatedAt()
+                auction.getUpdatedAt(),
+                auction.getEndTime()
         );
     }
 }

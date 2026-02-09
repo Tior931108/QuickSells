@@ -35,7 +35,7 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 
     /**
      * 사용자 ID로 채팅방 조회 (Fetch Join)
-     * - user1, user2, deal을 한 번에 조회
+     * - 나가지 않은 채팅방만 조회
      */
     @Query("SELECT DISTINCT cr FROM ChatRoom cr " +
             "LEFT JOIN FETCH cr.user1 " +
@@ -43,6 +43,36 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
             "LEFT JOIN FETCH cr.deal " +
             "WHERE cr.isDeleted = false " +
             "AND (cr.user1.id = :userId OR cr.user2.id = :userId) " +
+            "AND NOT (" +
+            "  (cr.user1.id = :userId AND cr.user1Left = true) OR " +
+            "  (cr.user2.id = :userId AND cr.user2Left = true)" +
+            ") " +
             "ORDER BY cr.updatedAt DESC")
     List<ChatRoom> findByUserIdWithUsers(@Param("userId") Long userId);
+
+    /**
+     * Soft delete된 채팅방 조회 (USER_ADMIN 타입)
+     * - @SQLRestriction을 우회하기 위해 네이티브 쿼리 사용
+     * - isDeleted = true인 채팅방을 찾음
+     */
+    @Query(value = "SELECT * FROM chat_rooms " +
+            "WHERE is_deleted = true " +
+            "  AND type = 'USER_ADMIN' " +
+            "  AND ((user1_id = :userId1 AND user2_id = :userId2) " +
+            "       OR (user1_id = :userId2 AND user2_id = :userId1))",
+            nativeQuery = true)
+    Optional<ChatRoom> findDeletedByTwoUsers(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
+
+    /**
+     * Soft delete된 채팅방 조회 (BUYER_SELLER 타입)
+     * - isDeleted = true이고 특정 deal에 연결된 채팅방 찾기
+     */
+    @Query(value = "SELECT * FROM chat_rooms " +
+            "WHERE is_deleted = true " +
+            "  AND type = 'BUYER_SELLER' " +
+            "  AND deal_id = :dealId " +
+            "  AND ((user1_id = :userId1 AND user2_id = :userId2) " +
+            "       OR (user1_id = :userId2 AND user2_id = :userId1))",
+            nativeQuery = true)
+    Optional<ChatRoom> findDeletedByTwoUsersAndDeal(@Param("userId1") Long userId1, @Param("userId2") Long userId2, @Param("dealId") Long dealId);
 }

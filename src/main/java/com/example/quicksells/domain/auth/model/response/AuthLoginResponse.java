@@ -8,8 +8,11 @@ import lombok.RequiredArgsConstructor;
 public class AuthLoginResponse {
 
     private final String token;
+    private final boolean passwordResetRequired;
 
-    public static AuthLoginResponse from(String token) {
-        return new AuthLoginResponse(token);
+    public static AuthLoginResponse from(String token, boolean passwordResetRequired) {
+        return new AuthLoginResponse(
+                token,
+                passwordResetRequired);
     }
 }

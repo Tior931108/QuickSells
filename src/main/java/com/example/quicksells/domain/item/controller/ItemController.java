@@ -42,13 +42,13 @@ public class ItemController {
      */
     @Operation(summary = "상품 등록")
     @PostMapping(value = "/items", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<CommonResponse> itemCreatedApi(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestPart("request") ItemCreatedRequest request, @RequestPart(value = "files") MultipartFile image) {
+    public ResponseEntity<CommonResponse> createItem(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestPart("request") ItemCreatedRequest request, @RequestPart(value = "files") MultipartFile image) {
 
         //생성 비지니스 핵심 로직
-        ItemCreatedResponse response = itemService.itemCreated(authUser, request, image);
+        ItemCreatedResponse response = itemService.createItem(authUser, request, image);
 
         //201 상태 코드 반환
-        return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success("상품 등록 됐습니다.", response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success("상품 등록 성공하셨습니다.", response));
     }
 
     /**
@@ -57,15 +57,15 @@ public class ItemController {
      * @param id
      * @return
      */
-    @Operation(summary = "상품 상세 조회")
-    @GetMapping("/items/{id}")
-    public ResponseEntity<CommonResponse> itemGetDetailApi(@PathVariable Long id) {
+    @Operation(summary = "상품 상세 조회 (관리자)")
+    @GetMapping("/admin/items/{id}")
+    public ResponseEntity<CommonResponse> getDetailItem(@PathVariable Long id) {
 
         //상세 조회 비지니스 핵심 로직
-        ItemGetDetailResponse response = itemService.itemGetDetail(id);
+        ItemGetDetailResponse response = itemService.getDetailItem(id);
 
         //200 상태 코드 반환
-        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("상품이 조회됐습니다.", response));
+        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("상품 조회 성공하셨습니다.", response));
     }
 
     /**
@@ -74,15 +74,15 @@ public class ItemController {
      * @param pageable
      * @return
      */
-    @Operation(summary = "상품 전체 조회")
-    @GetMapping("/items")
-    public ResponseEntity<PageResponse> itemGetListApi(@PageableDefault(page = 0, size = 10) Pageable pageable) {
+    @Operation(summary = "상품 전체 조회 (관리자)")
+    @GetMapping("/admin/items")
+    public ResponseEntity<PageResponse> getAll(@PageableDefault(page = 0, size = 10) Pageable pageable) {
 
         //페이징 처리된 상품 목록 조회 로직
-        Page<ItemGetListResponse> itemList = itemService.itemGetAll(pageable);
+        Page<ItemGetListResponse> itemList = itemService.getAll(pageable);
 
         //200 상태 코드 반환
-        return ResponseEntity.status(HttpStatus.OK).body(PageResponse.success("상품 목록 조회됐습니다.", itemList));
+        return ResponseEntity.status(HttpStatus.OK).body(PageResponse.success("상품 목록 조회 성공하셨습니다.", itemList));
     }
 
     /**
@@ -94,14 +94,14 @@ public class ItemController {
      */
     //상품 등록 상세 조회
     @Operation(summary = "나의 상품 상세 조회")
-    @GetMapping("/items/my/{id}")
-    public ResponseEntity<CommonResponse> itemGetMyDetailApi(@PathVariable Long id, @AuthenticationPrincipal AuthUser authUser) {
+    @GetMapping("/my/items/{id}")
+    public ResponseEntity<CommonResponse> getMyDetail(@PathVariable Long id, @AuthenticationPrincipal AuthUser authUser) {
 
         //나의 등록 상세 조회 비지니스 핵심 로직
         ItemGetDetailResponse response = itemService.getMyDetail(id, authUser);
 
         //200 상태 코드 반환
-        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("나의 등록 상품이 조회됐습니다.", response));
+        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("나의 등록 상품 조회 성공하셨습니다.", response));
     }
 
     /**
@@ -112,14 +112,14 @@ public class ItemController {
      */
     //상품 등록 목록 조회
     @Operation(summary = "나의 상품 전체 조회")
-    @GetMapping("/items/my")
-    public ResponseEntity<PageResponse> itemGetMyListApi(@AuthenticationPrincipal AuthUser authUser, @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+    @GetMapping("/my/items")
+    public ResponseEntity<PageResponse> getMyItemList(@AuthenticationPrincipal AuthUser authUser, @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
 
         // 나의 전체 목록 비지니스 로직
-        Page<ItemGetListResponse> itemsList = itemService.getItemList(authUser, pageable);
+        Page<ItemGetListResponse> itemsList = itemService.getMyItemList(authUser, pageable);
 
         // 페이징 적용된 200 상태 코드 반환
-        return ResponseEntity.status(HttpStatus.OK).body(PageResponse.success("나의 등록 상품이 조회 됐습니다.", itemsList));
+        return ResponseEntity.status(HttpStatus.OK).body(PageResponse.success("나의 등록 상품 조회 성공하셨습니다.", itemsList));
     }
 
     /**
@@ -131,13 +131,13 @@ public class ItemController {
      */
     @Operation(summary = "상품 수정")
     @PatchMapping(value = "/items/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<CommonResponse> itemUpdatedApi(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long id, @Valid @RequestPart(value = "request") ItemUpdateRequest request, @RequestPart(value = "image", required = false) MultipartFile image) {
+    public ResponseEntity<CommonResponse> updateItem(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long id, @Valid @RequestPart(value = "request") ItemUpdateRequest request, @RequestPart(value = "image", required = false) MultipartFile image) {
 
         //비지니스 로직
-        ItemUpdateResponse response = itemService.itemUpdated(authUser, id, request, image);
+        ItemUpdateResponse response = itemService.updateItem(authUser, id, request, image);
 
         //200 상태 코드 반환
-        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("상품이 수정됐습니다.", response));
+        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("상품 수정 성공하셨습니다.", response));
     }
 
     /**
@@ -149,12 +149,12 @@ public class ItemController {
      */
     @Operation(summary = "상품 삭제")
     @DeleteMapping("/items/{id}")
-    public ResponseEntity<CommonResponse> itemDeletedApi(@PathVariable Long id, @AuthenticationPrincipal AuthUser authUser) {
+    public ResponseEntity<CommonResponse> deleteItem(@PathVariable Long id, @AuthenticationPrincipal AuthUser authUser) {
 
         //비지니스 로직
-        itemService.itemDeleted(id, authUser);
+        itemService.deleteItem(id, authUser);
 
         //성공적 삭제 메세지 반환
-        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("상품이 삭제됐습니다."));
+        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("상품 삭제 성공하셨습니다."));
     }
 }

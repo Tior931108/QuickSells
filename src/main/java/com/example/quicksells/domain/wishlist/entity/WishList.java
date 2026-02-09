@@ -1,6 +1,6 @@
 package com.example.quicksells.domain.wishlist.entity;
 
-import com.example.quicksells.domain.item.entity.Item;
+import com.example.quicksells.domain.auction.entity.Auction;
 import com.example.quicksells.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Table(name = "wish_list", uniqueConstraints = @UniqueConstraint(columnNames = {"buyer_id", "item_id"})) // 중복 저장 x
+@Table(name = "wish_list", uniqueConstraints = @UniqueConstraint(columnNames = {"buyer_id", "auction_id"})) // 중복 저장 x
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class WishList {
 
@@ -24,20 +24,19 @@ public class WishList {
     private User buyer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id", nullable = false)
-    private Item item;
+    @JoinColumn(name = "auction_id", nullable = false)
+    private Auction auction;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    public WishList(User buyer, Item item) {
+    public WishList(User buyer, Auction auction) {
         this.buyer = buyer;
-        this.item = item;
+        this.auction = auction;
     }
 
     @PrePersist
     public void CreatedAt() {
-        Clock clock = Clock.systemDefaultZone();
-        this.createdAt = LocalDateTime.now(clock);
+        this.createdAt = LocalDateTime.now(Clock.systemDefaultZone());
     }
 }

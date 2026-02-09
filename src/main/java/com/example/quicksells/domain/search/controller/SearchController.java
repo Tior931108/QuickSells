@@ -36,7 +36,7 @@ public class SearchController {
      * @return 페이징된 상품 결과 검색
      */
     @Operation(summary = "상품 검색 조회")
-    @GetMapping("/item/searchs")
+    @GetMapping("/item/searches")
     public ResponseEntity<PageResponse> keywordGet(@AuthenticationPrincipal AuthUser authUser, @RequestParam String keyword, @PageableDefault(page = 0, size = 10) Pageable pageable) {
 
         //비지니스 로직
@@ -51,6 +51,7 @@ public class SearchController {
         return ResponseEntity.status(HttpStatus.OK).body(PageResponse.success("검색 결과입니다.", responsesDto));
     }
 
+    @Operation(summary = "인기 검색어 TOP10 조회")
     @GetMapping("/popular/searches")
     public ResponseEntity<CommonResponse> getPopularRankings() {
 

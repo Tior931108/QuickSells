@@ -4,15 +4,13 @@ import com.example.quicksells.common.enums.ExceptionCode;
 import com.example.quicksells.common.enums.PointTransactionType;
 import com.example.quicksells.common.exception.CustomException;
 import com.example.quicksells.domain.payment.entity.Payment;
-import com.example.quicksells.domain.payment.entity.PointTransaction;
 import com.example.quicksells.domain.payment.entity.PointWallet;
+import com.example.quicksells.domain.payment.model.TransactionReference;
 import com.example.quicksells.domain.payment.model.request.PaymentConfirmRequest;
 import com.example.quicksells.domain.payment.model.request.PaymentOrderCreateRequest;
 import com.example.quicksells.domain.payment.model.response.PaymentConfirmResponse;
 import com.example.quicksells.domain.payment.model.response.PaymentOrderCreateResponse;
 import com.example.quicksells.domain.payment.repository.PaymentRepository;
-import com.example.quicksells.domain.payment.repository.PointTransactionRepository;
-import com.example.quicksells.domain.payment.repository.PointWalletRepository;
 import com.example.quicksells.domain.payment.toss.TossConfirmRequest;
 import com.example.quicksells.domain.payment.toss.TossConfirmResponse;
 import com.example.quicksells.domain.payment.toss.TossPaymentsClient;
@@ -26,10 +24,8 @@ import java.util.UUID;
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
-    private final PointWalletRepository pointWalletRepository;
-    private final PointTransactionRepository pointTransactionRepository;
     private final TossPaymentsClient tossPaymentsClient;
-    private final PointWalletService pointWalletService;
+    private final PointLedgerService pointLedgerService;
 
     /**
      * 주문 생성(READY)
@@ -81,7 +77,7 @@ public class PaymentService {
         }
 
         if (!payment.getAmount().equals(request.getAmount())) {
-            payment.markAsFailed("금액 불일치 (변조 간으성 있음) - ready=" + payment.getAmount() + ", request=" + request.getAmount());
+            payment.markAsFailed("금액 불일치 (변조 가능성 있음) - ready=" + payment.getAmount() + ", request=" + request.getAmount());
             paymentRepository.save(payment);
             throw new CustomException(ExceptionCode.INVALID_PAYMENT_AMOUNT);
         }
@@ -108,23 +104,16 @@ public class PaymentService {
             payment.markAsApproved(tossResponse.getPaymentKey());
             Payment savedPayment = paymentRepository.save(payment);
 
-            // 지갑 생성
-            PointWallet wallet = pointWalletService.getOrCreate(userId);
-
-            // 잔액 충전
-            wallet.increaseBalance(savedPayment.getAmount().longValue());
-            PointWallet savedWallet = pointWalletRepository.save(wallet);
-
-            PointTransaction tx = new PointTransaction(
+            // 충전 정산을 Ledger로 통일
+            PointWallet wallet = pointLedgerService.credit(
                     userId,
-                    PointTransactionType.CHARGE,
                     savedPayment.getAmount().longValue(),
-                    savedPayment.getId(),
-                    null
+                    PointTransactionType.CHARGE,
+                    TransactionReference.ofPayment(savedPayment.getId())
             );
-            pointTransactionRepository.save(tx);
 
-            return PaymentConfirmResponse.from(payment, wallet);
+            return PaymentConfirmResponse.from(savedPayment, wallet);
+
 
         } catch (Exception dbException) {
             /**
@@ -139,7 +128,7 @@ public class PaymentService {
                 paymentRepository.save(payment);
 
                 // “롤백 성공이지만 내부 처리 실패”로 간주 → 에러 응답으로 통일
-                throw new CustomException(ExceptionCode.TOSS_CANCEL_FAILED);
+                throw new CustomException(ExceptionCode.TOSS_CONFIRM_FAILED);
 
             } catch (CustomException ce) {
                 // 위에서 의도적으로 던진 CustomException은 그대로 전달

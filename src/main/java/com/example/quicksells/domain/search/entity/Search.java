@@ -5,11 +5,6 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.LocalDateTime;
 
 @Table(name = "searches")
 @Entity
@@ -19,14 +14,12 @@ public class Search extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-
-    @Column(name = "search_id", nullable = false, unique = true)
     private Long id;
 
-    @Column(name = "keyword", length = 50, nullable = false, unique = true)
+    @Column(length = 50, nullable = false, unique = true)
     private String keyword;
 
-    @Column(name = "count", nullable = false)
+    @Column(nullable = false)
     private Long count;
 
 

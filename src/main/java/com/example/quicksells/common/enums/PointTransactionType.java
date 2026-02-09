@@ -35,5 +35,11 @@ public enum PointTransactionType {
     /**
      * 출금(내부 포인트 차감 + 거래내역 기록)
      */
-    WITHDRAW
+    WITHDRAW,
+
+    /**
+     * 운영자(관리자) 지급 포인트
+     * - CS/이벤트/보상 지급 등
+     */
+    ADMIN_GRANT
 }

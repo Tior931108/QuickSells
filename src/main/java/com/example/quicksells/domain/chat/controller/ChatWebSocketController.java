@@ -6,14 +6,16 @@ import com.example.quicksells.common.security.JwtAuthenticationToken;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
 import com.example.quicksells.domain.chat.model.request.ChatMessageRequest;
 import com.example.quicksells.domain.chat.model.response.ChatMessageResponse;
+import com.example.quicksells.domain.chat.service.ChatNotificationService;
+import com.example.quicksells.domain.chat.service.ChatProfanityFilterService;
 import com.example.quicksells.domain.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import java.security.Principal;
+import java.util.Map;
 
 /**
  * WebSocket 채팅 컨트롤러
@@ -26,7 +28,8 @@ import java.security.Principal;
 public class ChatWebSocketController {
 
     private final ChatService chatService;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatNotificationService notificationService;
+    private final ChatProfanityFilterService chatProfanityFilterService;
 
     /**
      * 실시간 메시지 전송
@@ -44,17 +47,14 @@ public class ChatWebSocketController {
             // 1. 인증 정보 추출
             AuthUser authUser = extractAuthUser(principal);
 
-            // 2. canChat() 으로 채팅 권한 검증
-            if (!chatService.canChat(authUser.getId(), request.getChatRoomId())) {
-                return;  // WebSocket은 에러 응답 불가능함. canChat() 내에서 예외처리
-            }
+            // 2. 비속어 필터링 : 치환
+            String filteredContent = chatProfanityFilterService.filterProfanity(request.getContent());
 
-            // 3. 메시지 저장 (ChatService 활용)
-            ChatMessageResponse response = chatService.sendMessage(request.getChatRoomId(), request, authUser);
+            // 3. 메시지 저장
+            ChatMessageResponse response = chatService.sendMessageWithoutValidation(request.getChatRoomId(), authUser, filteredContent);
 
-            // 4. 채팅방 구독자들에게 브로드캐스트
-            String destination = "/topic/chat/room/" + request.getChatRoomId();
-            messagingTemplate.convertAndSend(destination, response);
+            // 4. 채팅방 구독자들에게 브로드캐스트 (알림 서비스 사용)
+            notificationService.broadcastMessage(request.getChatRoomId(), response);
 
         } catch (Exception e) {
             // 에러는 클라이언트로 전달되지 않으므로 로깅만 수행

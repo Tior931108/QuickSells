@@ -3,6 +3,8 @@ package com.example.quicksells.domain.auction.controller;
 import com.example.quicksells.common.model.CommonResponse;
 import com.example.quicksells.domain.auction.model.response.AdminAuctionSettlementRetryResponse;
 import com.example.quicksells.domain.auction.service.AdminAuctionSettlementService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
  * - 포인트 부족 등으로 정산 실패한 경우
  *   운영자가 추가 충전 유도 후 이 API로 재정산을 시도한다.
  */
+@Tag(name = "경매(Auction) 낙찰 정산 재시도 관리")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin")
@@ -23,6 +26,7 @@ public class AdminAuctionSettlementController {
 
     private final AdminAuctionSettlementService adminAuctionSettlementService;
 
+    @Operation(summary = "관리자 : 경매 낙찰 정산 재시도")
     @PostMapping("/auctions/{auctionId}/settlements/retry")
     public ResponseEntity<CommonResponse> retrySettlement(@PathVariable Long auctionId) {
 

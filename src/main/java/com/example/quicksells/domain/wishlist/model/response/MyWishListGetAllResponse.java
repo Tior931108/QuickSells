@@ -11,14 +11,14 @@ public class MyWishListGetAllResponse {
 
     private final Long id;
     private final Long buyerId;
-    private final Long itemId;
+    private final Long auctionId;
     private final LocalDateTime createdAt;
 
     public static MyWishListGetAllResponse from(WishList wishList) {
         return new MyWishListGetAllResponse(
                 wishList.getId(),
                 wishList.getBuyer().getId(),
-                wishList.getItem().getId(),
+                wishList.getAuction().getId(),
                 wishList.getCreatedAt()
         );
     }

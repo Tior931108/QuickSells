@@ -39,8 +39,11 @@ public class OAuthSuccessHandler extends SavedRequestAwareAuthenticationSuccessH
         // 소셜 로그인 후 정보 입력을 안했을 때
         if (user.getStatus() == UserStatus.PENDING) {
 
+            String accessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getName(), user.getRole());
+
             // 프론트에서 서버 OAuthController {/oauth/google/signup} url 호출
             String targetUrl = UriComponentsBuilder.fromUriString(frontRedirectUrl + "/oauth/additional-info")
+                    .queryParam("accessToken", accessToken)
                     .queryParam("userId", user.getId())
                     .build().toUriString();
 

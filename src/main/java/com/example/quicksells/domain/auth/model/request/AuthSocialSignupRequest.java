@@ -1,11 +1,17 @@
 package com.example.quicksells.domain.auth.model.request;
 
 import com.example.quicksells.common.annotation.Adult;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@Schema(description = "구글 로그인 후 추가정보 입력")
 public class AuthSocialSignupRequest {
 
     @NotBlank(message = "전화번호는 필수입니다.")

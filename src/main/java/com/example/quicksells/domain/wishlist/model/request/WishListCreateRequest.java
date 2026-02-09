@@ -2,9 +2,11 @@ package com.example.quicksells.domain.wishlist.model.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
+@AllArgsConstructor
 @Schema(description = "관심록록 생성")
 public class WishListCreateRequest {
 
@@ -12,7 +14,7 @@ public class WishListCreateRequest {
     @Schema(description = "구매자 ID")
     private Long buyerId;
 
-    @NotNull(message = "상품은 필수입니다")
+    @NotNull(message = "경매는 필수입니다")
     @Schema(description = "상품 ID")
-    private Long itemId;
+    private Long auctionId;
 }

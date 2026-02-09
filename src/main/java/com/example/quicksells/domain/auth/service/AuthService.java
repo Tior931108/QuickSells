@@ -77,9 +77,12 @@ public class AuthService {
         // 토큰 생성
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getName(), user.getRole());
 
-        return AuthLoginResponse.from(token);
+        return AuthLoginResponse.from(token, user.isPasswordResetRequired());
     }
 
+    /**
+     * 로그아웃 기능
+     */
     @Transactional
     public void logout(String token) {
 

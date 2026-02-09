@@ -38,10 +38,10 @@ public class ChatMessage extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content; // 메시지 내용
 
-    @Column(nullable = false, length = 10)
+    @Column(name = "is_read",nullable = false)
     private Boolean isRead = false; // 읽음 여부
 
-    @Column(nullable = false, length = 10)
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false; // 삭제 여부
 
     public ChatMessage(ChatRoom chatRoom, User sender, String content) {
@@ -50,10 +50,5 @@ public class ChatMessage extends BaseEntity {
         this.content = content;
         this.isRead = false;
         this.isDeleted = false;
-    }
-
-    // 읽음 처리
-    public void markAsRead() {
-        this.isRead = true;
     }
 }

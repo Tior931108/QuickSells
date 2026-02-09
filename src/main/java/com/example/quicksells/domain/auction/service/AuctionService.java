@@ -6,15 +6,14 @@ import com.example.quicksells.common.enums.ExceptionCode;
 import com.example.quicksells.common.exception.CustomException;
 import com.example.quicksells.domain.appraise.entity.Appraise;
 import com.example.quicksells.domain.appraise.repository.AppraiseRepository;
+import com.example.quicksells.domain.auction.entity.AuctionHistory;
 import com.example.quicksells.domain.auction.model.dto.BidInfo;
 import com.example.quicksells.domain.auction.model.request.AuctionCreateRequest;
 import com.example.quicksells.domain.auction.model.request.AuctionSearchFilterRequest;
 import com.example.quicksells.domain.auction.model.request.AuctionUpdateRequest;
-import com.example.quicksells.domain.auction.model.response.AuctionCreateResponse;
-import com.example.quicksells.domain.auction.model.response.AuctionGetAllResponse;
-import com.example.quicksells.domain.auction.model.response.AuctionGetResponse;
-import com.example.quicksells.domain.auction.model.response.AuctionUpdateResponse;
+import com.example.quicksells.domain.auction.model.response.*;
 import com.example.quicksells.domain.auction.entity.Auction;
+import com.example.quicksells.domain.auction.repository.AuctionHistoryRepository;
 import com.example.quicksells.domain.auction.repository.AuctionRepository;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
 import com.example.quicksells.domain.deal.service.DealService;
@@ -26,8 +25,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Clock;
 import java.time.LocalDateTime;
 
@@ -40,6 +41,7 @@ public class AuctionService {
     private final UserRepository userRepository;
     private final DealService dealService;
     private final ApplicationEventPublisher eventPublisher;
+    private final AuctionHistoryRepository auctionHistoryRepository;
     private final PointWalletService pointWalletService;
 
     @Transactional
@@ -86,6 +88,17 @@ public class AuctionService {
         return AuctionGetResponse.from(foundAuction);
     }
 
+    @Transactional(readOnly = true)
+    public Slice<AuctionHistoryGetAllResponse> GetAllAuctionHistory(Pageable pageable, AuthUser authUser, Long buyerId) {
+
+        validateUser(authUser, buyerId);
+
+        // 내 경매 내역 조회
+        Slice<AuctionHistory> foundAuctionHistory = auctionHistoryRepository.findByBuyerId(pageable, buyerId);
+
+        return foundAuctionHistory.map(AuctionHistoryGetAllResponse::from);
+    }
+
     @RedissonLock
     @Transactional
     public AuctionUpdateResponse updateBidPrice(Long auctionId, AuctionUpdateRequest request, AuthUser authUser) {
@@ -104,8 +117,22 @@ public class AuctionService {
         // 입찰 가격 검증
         validateBidPrice(request.getBidPrice(), foundAuction.getBidPrice());
 
+        // 잔액 검증(포인트 차감은 안됨)
+        validateBalance(foundBuyer.getId(), request.getBidPrice());
+
         // 경매 입찰
         foundAuction.update(foundBuyer, request.getBidPrice());
+
+        // 경매 내역
+        AuctionHistory newAuctionHistory = new AuctionHistory(
+                foundAuction,
+                foundBuyer,
+                foundAuction.getBidPrice(),
+                foundAuction.getUpdatedAt()
+        );
+
+        // 경매 내역 저장
+        auctionHistoryRepository.save(newAuctionHistory);
 
         // 경매 정보
         BidInfo bidInfo = new BidInfo(
@@ -113,12 +140,6 @@ public class AuctionService {
                 foundBuyer.getName(),
                 foundAuction.getBidPrice()
         );
-
-        // 잔액 검증(포인트 차감은 안됨)
-        PointWallet buyerWallet = pointWalletService.getOrCreate(foundBuyer.getId());
-        if (buyerWallet.getAvailableBalance() < request.getBidPrice()) {
-            throw new CustomException(ExceptionCode.INSUFFICIENT_BALANCE);
-        }
 
         // 이벤트 퍼블리싱
         eventPublisher.publishEvent(bidInfo);
@@ -171,6 +192,16 @@ public class AuctionService {
         }
     }
 
+    private void validateUser(AuthUser authUser, Long requestBuyerId) {
+
+        Long authUserId = authUser.getId();
+
+        // 인증유저와 요청한 구매자가 다를때 예외
+        if (!authUserId.equals(requestBuyerId)) {
+            throw new CustomException(ExceptionCode.ACCESS_DENIED_ONLY_OWNER);
+        }
+    }
+
     private void deduplicationAuction(Appraise foundAppraise) {
 
         boolean duplicatedAppraise = auctionRepository.existsByAppraise(foundAppraise);
@@ -181,4 +212,12 @@ public class AuctionService {
         }
     }
 
+    private void validateBalance(Long buyerId, Integer bidPrice) {
+
+        PointWallet buyerWallet = pointWalletService.getOrCreate(buyerId);
+
+        if (buyerWallet.getAvailableBalance() < bidPrice) {
+            throw new CustomException(ExceptionCode.INSUFFICIENT_BALANCE);
+        }
+    }
 }

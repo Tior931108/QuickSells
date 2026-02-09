@@ -112,8 +112,8 @@ public class BulkDataInsertService {
 
         String sql = """
             INSERT INTO items (seller_id, name, hope_price, description, image, 
-                             selling, is_deleted, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             is_deleted, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
         List<Long> userIds = getUserIds();
@@ -143,9 +143,8 @@ public class BulkDataInsertService {
                     ps.setString(4, generateItemDescription(actualIndex));
                     ps.setString(5, "item_image_" + actualIndex + ".jpg");
                     ps.setBoolean(6, Math.random() > 0.3); // 70% ON_SALE
-                    ps.setBoolean(7, false);
+                    ps.setTimestamp(7, Timestamp.valueOf(LocalDateTime.now().minusDays(actualIndex % 90)));
                     ps.setTimestamp(8, Timestamp.valueOf(LocalDateTime.now().minusDays(actualIndex % 90)));
-                    ps.setTimestamp(9, Timestamp.valueOf(LocalDateTime.now().minusDays(actualIndex % 90)));
                 }
 
                 @Override
@@ -290,10 +289,10 @@ public class BulkDataInsertService {
         long startTime = System.currentTimeMillis();
 
         String sql = """
-            INSERT INTO auctions (appraise_id, buyer_id, bid_price, status, 
-                                end_time, is_deleted, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """;
+        INSERT INTO auctions (appraise_id, buyer_id, bid_price, status, 
+                            end_time, is_deleted, settlement_status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
 
         // appraise_status가 AUCTION인 것만 조회
         List<Long> auctionAppraiseIds = getAuctionAppraiseIds();
@@ -375,8 +374,12 @@ public class BulkDataInsertService {
                     }
 
                     ps.setBoolean(6, false); // is_deleted
-                    ps.setTimestamp(7, Timestamp.valueOf(LocalDateTime.now().minusDays((actualIndex % 30) + 2)));
-                    ps.setTimestamp(8, Timestamp.valueOf(LocalDateTime.now().minusDays((actualIndex % 30) + 1)));
+
+                    // settlement_status: 모두 PENDING
+                    ps.setString(7, "PENDING"); // settlement_status
+
+                    ps.setTimestamp(8, Timestamp.valueOf(LocalDateTime.now().minusDays((actualIndex % 30) + 2)));
+                    ps.setTimestamp(9, Timestamp.valueOf(LocalDateTime.now().minusDays((actualIndex % 30) + 1)));
                 }
 
                 @Override

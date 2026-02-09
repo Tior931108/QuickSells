@@ -41,12 +41,17 @@ public class OAuthService {
     }
 
     @Transactional
-    public User createSocialUser(String email, String name) {
+    public User createSocialUser(String email, String name, String providerId) {
+
+        if (userRepository.existsByEmail(email)) {
+            throw new CustomException(ExceptionCode.EXISTS_EMAIL);
+        }
 
         User socialUser = new User(
                 email,
                 passwordEncoder.encode(UUID.randomUUID().toString()),
-                name
+                name,
+                providerId
         );
 
         // 소셜 가입 시에도 지갑 생성

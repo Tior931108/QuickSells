@@ -1,4 +1,4 @@
-package com.example.quicksells.domain.auction.service;
+package com.example.quicksells.domain.payment.service;
 
 import com.example.quicksells.common.enums.ExceptionCode;
 import com.example.quicksells.common.enums.PointTransactionType;
@@ -7,10 +7,7 @@ import com.example.quicksells.common.exception.CustomException;
 import com.example.quicksells.domain.auction.entity.Auction;
 import com.example.quicksells.domain.deal.entity.Deal;
 import com.example.quicksells.domain.deal.repository.DealRepository;
-import com.example.quicksells.domain.payment.entity.PointTransaction;
-import com.example.quicksells.domain.payment.entity.PointWallet;
-import com.example.quicksells.domain.payment.repository.PointTransactionRepository;
-import com.example.quicksells.domain.payment.service.PointWalletService;
+import com.example.quicksells.domain.payment.model.TransactionReference;
 import com.example.quicksells.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,9 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuctionSettlementService {
 
-    private final PointTransactionRepository pointTransactionRepository;
     private final DealRepository dealRepository;
-    private final PointWalletService pointWalletService;
+    private final PointLedgerService pointLedgerService;
 
     /**
      * 경매 낙찰 정산 처리
@@ -73,10 +69,6 @@ public class AuctionSettlementService {
             return;
         }
 
-        // 3) 포인트 지갑 로드 (없으면 생성)
-        PointWallet buyerWallet = pointWalletService.getOrCreate(buyer.getId());
-        PointWallet sellerWallet = pointWalletService.getOrCreate(seller.getId());
-
         /**
          * 4) 포인트 이동
          * - buyer 차감
@@ -85,28 +77,17 @@ public class AuctionSettlementService {
          *  여기서 buyerWallet.decreaseBalance()는 잔액 부족 시 예외 발생
          * - 예외 처리 이후 재정산 API 호출
          */
-        buyerWallet.decreaseBalance(amount);   // 부족하면 CustomException(INSUFFICIENT_BALANCE)
-        sellerWallet.increaseBalance(amount);
-
-        // 5) 포인트 거래내역 2건 기록(구매자는 포인트 차감 / 판매자는 포인트 추가)
-        pointTransactionRepository.save(new PointTransaction(
+        pointLedgerService.transfer(
                 buyer.getId(),
-                PointTransactionType.AUCTION_WIN_DEDUCT,
-                amount,
-                null,
-                auction.getId()
-        ));
-
-        pointTransactionRepository.save(new PointTransaction(
                 seller.getId(),
-                PointTransactionType.AUCTION_SELLER_CREDIT,
                 amount,
-                null,
-                auction.getId()
-        ));
+                PointTransactionType.AUCTION_WIN_DEDUCT,
+                PointTransactionType.AUCTION_SELLER_CREDIT,
+                TransactionReference.ofAuction(auction.getId())
+        );
 
         // 6) Deal 완료 처리(상태 SOLD + 최종 가격 반영)
-        deal.completeAuction(buyer, auction.getBidPrice());
+        deal.completeAuction(auction.getBidPrice());
 
         log.info("[AuctionSettlement] 정산 완료. auctionId={}, amount={}, buyerId={}, sellerId={}",
                 auction.getId(), amount, buyer.getId(), seller.getId());

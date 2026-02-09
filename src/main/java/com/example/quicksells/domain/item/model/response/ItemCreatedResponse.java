@@ -21,7 +21,6 @@ public class ItemCreatedResponse {
                         item.getHopePrice(),
                         item.getDescription(),
                         item.getImage(),
-                        item.isSelling(),
                         item.getSeller().getRole(),
                         item.getCreatedAt()));
     }

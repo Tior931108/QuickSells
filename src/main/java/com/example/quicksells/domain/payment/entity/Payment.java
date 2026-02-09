@@ -58,14 +58,14 @@ public class Payment {
      * - 토스 승인(confirm) 성공 후 발급됨
      * - READY 상태에서는 null이어야 정상
      */
-    @Column(name = "payment_key", nullable = true, length = 200)
+    @Column(name = "payment_key", length = 200)
     private String paymentKey;
 
     /**
      * 결제 금액 (원 단위)
      * - READY 단계에서 저장해두고 confirm 요청 값과 비교하여 위/변조 방지에 사용
      */
-    @Column(name = "amount", nullable = false)
+    @Column(nullable = false)
     private Integer amount;
 
     /**

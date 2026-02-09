@@ -45,7 +45,7 @@ public class AnswerService {
 
         // 답변 존재여부
         if (answerRepository.existsByAsk(ask)) {
-            throw new CustomException(ExceptionCode.NOT_FOUND_ANSWER);
+            throw new CustomException(ExceptionCode.ANSWER_ALREADY_EXISTS);
         }
 
         // 관리자 유저 존재여부

@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
+@Schema(description = "이메일 인증코드 검증")
 public class AuthMailCodeVerificationRequest {
 
     @Email(message = "이메일 형식이 올바르지 않습니다.")

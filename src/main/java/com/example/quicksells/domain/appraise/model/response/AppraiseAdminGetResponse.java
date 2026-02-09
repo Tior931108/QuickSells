@@ -47,7 +47,6 @@ public class AppraiseAdminGetResponse {
         private String description;
         private Long hopePrice;
         private String imageUrl;
-        private Boolean status;
 
         public static ItemDetailDto from(Item item) {
             return new ItemDetailDto(
@@ -55,8 +54,7 @@ public class AppraiseAdminGetResponse {
                     item.getName(),
                     item.getDescription(),
                     item.getHopePrice(),
-                    item.getImage(),
-                    item.isSelling()
+                    item.getImage()
             );
         }
     }

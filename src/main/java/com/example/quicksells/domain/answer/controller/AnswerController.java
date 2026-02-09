@@ -8,6 +8,7 @@ import com.example.quicksells.domain.answer.model.response.AnswerGetAllResponse;
 import com.example.quicksells.domain.answer.model.response.AnswerGetResponse;
 import com.example.quicksells.domain.answer.service.AnswerService;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "문의 답변(answer)")
+@Tag(name = "문의 답변(answer) 관리")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
@@ -29,6 +30,7 @@ public class AnswerController {
     /**
      * 답변 생성 API (관리자)
      */
+    @Operation(summary = "문의 답변 생성")
     @PostMapping("/answers/asks/{askId}")
     public ResponseEntity<CommonResponse> createAnswer(@PathVariable Long askId, @Valid @RequestBody AnswerCreateRequest request, @AuthenticationPrincipal AuthUser authUser) {
 
@@ -40,6 +42,7 @@ public class AnswerController {
     /**
      * 답변 상세 조회
      */
+    @Operation(summary = "문의 답변 상세 조회")
     @GetMapping("/answers/asks/{askId}")
     public ResponseEntity<CommonResponse> getAnswer(@PathVariable Long askId, @AuthenticationPrincipal AuthUser authUser) {
 
@@ -51,8 +54,9 @@ public class AnswerController {
     /**
      * 답변 전체 조회
      */
+    @Operation(summary = "문의 답변 전체 조회")
     @GetMapping("/answers")
-    public ResponseEntity<CommonResponse> getAnswers(AuthUser authUser) {
+    public ResponseEntity<CommonResponse> getAnswers(@AuthenticationPrincipal AuthUser authUser) {
 
         List<AnswerGetAllResponse> response = answerService.getAnswers(authUser);
 
@@ -62,6 +66,7 @@ public class AnswerController {
     /**
      * 답변 수정
      */
+    @Operation(summary = "문의 답변 수정")
     @PutMapping("/admin/answers/{id}")
     public ResponseEntity<CommonResponse> updateAnswer(@PathVariable Long id, @Valid @RequestBody AnswerUpdateRequest request) {
 
@@ -73,6 +78,7 @@ public class AnswerController {
     /**
      * 답변 삭제
      */
+    @Operation(summary = "문의 답변 삭제")
     @DeleteMapping("/admin/answers/{id}")
     public ResponseEntity<CommonResponse> deleteAnswer(@PathVariable Long id) {
 

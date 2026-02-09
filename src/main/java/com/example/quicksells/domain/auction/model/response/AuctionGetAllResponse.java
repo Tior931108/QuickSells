@@ -18,6 +18,7 @@ public class AuctionGetAllResponse {
     private final AuctionStatusType status;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
+    private final LocalDateTime endTime;
 
     public static AuctionGetAllResponse from(Auction auction) {
         return new AuctionGetAllResponse(// 감정된 아이템 이름
@@ -28,7 +29,8 @@ public class AuctionGetAllResponse {
                 auction.getBidPrice(),
                 auction.getStatus(),
                 auction.getCreatedAt(),
-                auction.getUpdatedAt()
+                auction.getUpdatedAt(),
+                auction.getEndTime()
         );
     }
 }

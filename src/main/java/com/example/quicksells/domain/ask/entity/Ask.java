@@ -28,7 +28,7 @@ public class Ask extends BaseEntity{
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 20, nullable = false)
+    @Column(name = "ask_type", length = 20, nullable = false)
     private AskType askType; // 문의 유형
 
     @Column(length = 50, nullable = false)
@@ -37,7 +37,7 @@ public class Ask extends BaseEntity{
     @Column(length = 500, nullable = false)
     private String content;
 
-    @Column(length = 10, nullable = false)
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
     public Ask(User user, AskType askType, String title, String content) {

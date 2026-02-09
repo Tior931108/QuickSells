@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
+@Schema(description = "임시 비밀번호 검증")
 public class AuthPasswordVerificationRequest {
 
     @Email(message = "이메일 형식이 올바르지 않습니다.")

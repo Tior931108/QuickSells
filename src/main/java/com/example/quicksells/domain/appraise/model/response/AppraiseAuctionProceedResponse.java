@@ -5,7 +5,6 @@ import com.example.quicksells.domain.appraise.entity.Appraise;
 import com.example.quicksells.domain.auction.model.response.AuctionCreateResponse;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-
 import java.time.LocalDateTime;
 
 @Getter
@@ -35,7 +34,7 @@ public class AppraiseAuctionProceedResponse {
                 appraise.getItem().getId(),
                 appraise.getItem().getName(),
                 auction.getId(),
-                appraise.getBidPrice(),
+                auction.getBidPrice(),
                 auction.getCreatedAt()
         );
 

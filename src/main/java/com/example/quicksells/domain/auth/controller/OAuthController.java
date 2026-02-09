@@ -6,6 +6,7 @@ import com.example.quicksells.domain.auth.model.request.AuthSocialSignupRequest;
 import com.example.quicksells.domain.auth.model.response.AuthSocialSignupResponse;
 import com.example.quicksells.domain.auth.service.OAuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "소셜 로그인(Oauth) 관리")
 @RestController
 @RequiredArgsConstructor
 public class OAuthController {
@@ -32,7 +34,7 @@ public class OAuthController {
 
         AuthSocialSignupResponse response = oAuthService.completeSocialSignup(authUser, request);
 
-        return ResponseEntity.ok(CommonResponse.success("소셜 회원가입을 성공하셨습니다.", response));
+        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("소셜 회원가입을 성공하셨습니다.", response));
     }
 }
 

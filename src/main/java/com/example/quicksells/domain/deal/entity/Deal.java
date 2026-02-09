@@ -18,7 +18,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Deal {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
@@ -40,10 +41,10 @@ public class Deal {
     @Column(length = 20)
     private StatusType status;
 
-    @Column(nullable = false)
+    @Column(name = "deal_price" , nullable = false)
     private Integer dealPrice;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at" , nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     // 생성 시간
@@ -65,7 +66,7 @@ public class Deal {
     /* ===== 비즈니스 메서드 ===== */
 
     // 거래 완료 처리
-    public void completeAuction(User buyer, Integer finalPrice) {
+    public void completeAuction(Integer finalPrice) {
         if (this.status != StatusType.ON_SALE) {
             throw new CustomException(ExceptionCode.NOT_DEAL_ON_SALE);
         }
@@ -73,28 +74,11 @@ public class Deal {
         // 경매가 완료된 시점의 구매자 처리
         this.dealPrice = finalPrice;
         this.status = StatusType.SOLD;
-
-        // 이 부분에서 buyer 또는 seller를 사용하는 다른 로직이 필요할 수 있습니다.
     }
 
     // 감정 선택 시 Deal 업데이트
     public void updateForAppraise(StatusType status, Integer dealPrice) {
         this.status = status;
         this.dealPrice = dealPrice;
-    }
-
-    /**
-     * 회사 즉시매입 완료 처리
-     *
-     * 정책:
-     * - 구매자는 시스템(회사)이므로 일반 유저 buyer는 필요 없다.
-     * - (선택) buyer 컬럼을 유지하는 경우, 운영자(ADMIN) 계정을 buyer로 저장할 수 있다.
-     */
-    public void completeInstantSaleByCompany(User adminBuyer) {
-        if (this.status != StatusType.ON_SALE) {
-            throw new CustomException(ExceptionCode.NOT_DEAL_ON_SALE);
-        }
-
-        this.status = StatusType.SOLD;
     }
 }

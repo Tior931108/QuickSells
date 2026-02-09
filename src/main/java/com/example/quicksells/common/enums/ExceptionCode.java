@@ -46,11 +46,10 @@ public enum ExceptionCode {
 
     //auth
     NOT_FOUND_EMAIL(HttpStatus.NOT_FOUND, "이메일을 찾을 수 없습니다."),
-    NOT_MATCHES_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호가 일치하지 않습니다"),
+    NOT_MATCHES_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호가 일치하지 않습니다."),
     EXISTS_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     ALREADY_COMPLETED_SIGNUP(HttpStatus.CONFLICT, "이미 회원가입이 완료된 사용자입니다."),
     OAUTH_PROVIDER_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "지원하지 않는 OAuth 공급자입니다."),
-    OAUTH_EMAIL_NOT_FOUND(HttpStatus.BAD_REQUEST, "OAuth 로그인 정보에서 이메일을 찾을 수 없습니다."),
 
 
     //USER
@@ -58,7 +57,7 @@ public enum ExceptionCode {
     NOT_FOUND_ADMIN(HttpStatus.NOT_FOUND, "관리자를 찾을 수 없습니다."),
     NOT_FOUND_TOKEN(HttpStatus.NOT_FOUND, "토큰을 찾을 수 없습니다."),
     EXISTS_PHONE(HttpStatus.CONFLICT, "이미 존재하는 핸드폰 번호입니다."), //auth,User
-    NO_UPDATE_FIELD(HttpStatus.BAD_REQUEST, "수정할 정보가 없습니다"),
+    NO_UPDATE_FIELD(HttpStatus.BAD_REQUEST, "수정할 정보가 없습니다."),
     INVALID_USER_ROLE(HttpStatus.BAD_REQUEST, "유효하지 않은 사용자 권한입니다."), //UserRole
     SAME_AS_OLD_PASSWORD(HttpStatus.BAD_REQUEST, "이전 비밀번호와 동일합니다."),
     WRONG_PASSWORD(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다."),
@@ -82,6 +81,7 @@ public enum ExceptionCode {
     //ANSWER
     NOT_FOUND_ANSWER(HttpStatus.NOT_FOUND, "답변 내역을 찾을 수 없습니다."),
     ACCESS_DENIED_ANSWER(HttpStatus.FORBIDDEN, "조회할 권한이 없습니다."),
+    ANSWER_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 답변이 존재합니다."),
 
     //ASK
     NOT_FOUND_ASK(HttpStatus.NOT_FOUND, "문의 내역을 찾을 수 없습니다."),
@@ -115,6 +115,7 @@ public enum ExceptionCode {
     //WISH_LIST
     ACCESS_DENIED_EXCEPTION_WISHLIST(HttpStatus.FORBIDDEN, "관심 목록 대한 권한이 없습니다."),
     NOT_EXIST_ONE_WISHLIST(HttpStatus.NOT_FOUND, "해당 관심 목록은 존재하지 않습니다."),
+    SELF_WISH_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "본인 상품은 관심 목록으로 등록 할 수 없습니다."),
 
     //WebSocket & 채팅 & 토큰 및 principal 인증 관련
     MISSING_TOKEN(HttpStatus.UNAUTHORIZED, "유효한 토큰이 없습니다."),

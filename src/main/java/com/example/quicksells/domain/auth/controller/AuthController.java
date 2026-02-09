@@ -39,7 +39,7 @@ public class AuthController {
 
         AuthSignupResponse response = authService.createUser(request);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success("회원 가입 성공하셨습니다..", response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success("회원 가입 성공하셨습니다.", response));
     }
 
     /**
@@ -56,6 +56,9 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("로그인 성공하셨습니다.", response));
     }
 
+    /**
+     * 로그아웃 API
+     */
     @Operation(summary = "로그아웃")
     @PostMapping("/auth/logout")
     public ResponseEntity<CommonResponse> logout(HttpServletRequest request) {

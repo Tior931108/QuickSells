@@ -8,6 +8,8 @@ import com.example.quicksells.domain.payment.model.response.PaymentConfigRespons
 import com.example.quicksells.domain.payment.model.response.PaymentConfirmResponse;
 import com.example.quicksells.domain.payment.model.response.PaymentOrderCreateResponse;
 import com.example.quicksells.domain.payment.service.PaymentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "사용자 결제(Payment) 관리")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/payments")
@@ -37,6 +40,7 @@ public class PaymentController {
      * 2) 서버가 orderId 생성 + Payment(READY) 저장
      * 3) 클라이언트는 이 orderId를 사용해 결제창을 오픈한다
      */
+    @Operation(summary = "토스페이 API 주문(order) 기록 생성(READY)")
     @PostMapping("/orders")
     public ResponseEntity<CommonResponse> createOrder(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestBody PaymentOrderCreateRequest request) {
 
@@ -58,6 +62,7 @@ public class PaymentController {
      *  안정성 처리
      * - DB 처리 실패 시 토스 cancel로 외부 결제를 롤백 시도한다.
      */
+    @Operation(summary = "토스페이 API 결제 승인(confirm)")
     @PostMapping("/confirm")
     public ResponseEntity<CommonResponse> confirm(@AuthenticationPrincipal AuthUser authUser, @Valid @RequestBody PaymentConfirmRequest request) {
 
@@ -76,6 +81,7 @@ public class PaymentController {
      *  보안
      * - clientKey만 제공 (secretKey는 절대 제공 금지)
      */
+    @Operation(summary = "토스페이 API clientKey 조회")
     @GetMapping("/config")
     public ResponseEntity<CommonResponse> config() {
 

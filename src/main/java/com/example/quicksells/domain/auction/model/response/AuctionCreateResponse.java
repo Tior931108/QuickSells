@@ -17,6 +17,7 @@ public class AuctionCreateResponse {
     private final Integer bidPrice;
     private final AuctionStatusType status;
     private final LocalDateTime createdAt;
+    private final LocalDateTime endTime;
 
     public static AuctionCreateResponse from(Auction auction) {
         return new AuctionCreateResponse(
@@ -26,7 +27,8 @@ public class AuctionCreateResponse {
                 auction.getAppraise().getItem().getName(),
                 auction.getBidPrice(),
                 auction.getStatus(),
-                auction.getCreatedAt()
+                auction.getCreatedAt(),
+                auction.getEndTime()
         );
     }
 }

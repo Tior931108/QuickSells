@@ -95,9 +95,6 @@ public class AskService {
         // 3. 부분 수정 (Optional)
         ask.updatePartial(request);
 
-        // 명시적 DB 선언 - 수정 시간 반영
-        askRepository.flush();
-
         return AskUpdateReponse.from(ask);
     }
 

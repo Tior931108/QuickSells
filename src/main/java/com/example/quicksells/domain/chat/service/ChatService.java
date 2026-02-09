@@ -9,6 +9,7 @@ import com.example.quicksells.domain.chat.entity.ChatMessage;
 import com.example.quicksells.domain.chat.entity.ChatRoom;
 import com.example.quicksells.domain.chat.model.request.ChatMessageRequest;
 import com.example.quicksells.domain.chat.model.request.ChatRoomCreateRequest;
+import com.example.quicksells.domain.chat.model.response.AvailableUsersResponse;
 import com.example.quicksells.domain.chat.model.response.ChatMessageResponse;
 import com.example.quicksells.domain.chat.model.response.ChatRoomResponse;
 import com.example.quicksells.domain.chat.repository.ChatMessageRepository;
@@ -23,8 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -36,9 +36,10 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
     private final DealRepository dealRepository;
+    private final ChatNotificationService notificationService;  // 알림 서비스 분리
 
     /**
-     * 채팅방 생성 또는 조회
+     * 사용자 - 관리자 (또는 관리자간 ) 채팅방 생성 또는 조회
      * - 이미 존재하면 기존 채팅방 반환
      * - 없으면 새로 생성
      * - 유저-유저 채팅 차단
@@ -68,9 +69,24 @@ public class ChatService {
         // 5. 기존 채팅방 조회
         ChatRoom chatRoom = chatRoomRepository.findByTwoUsers(currentUserId, otherUserId)
                 .orElseGet(() -> {
-                    // 6. 없으면 새로 생성 (USER_ADMIN 타입)
-                    ChatRoom newChatRoom = new ChatRoom(currentUser, otherUser);
-                    return chatRoomRepository.save(newChatRoom);
+                    // 활성 채팅방 없으면 soft delete된 채팅방 찾기
+                    ChatRoom deletedRoom = findDeletedChatRoom(currentUserId, otherUserId);
+
+                    if (deletedRoom != null) {
+                        // Soft delete된 채팅방 재활성화
+                        deletedRoom.reactivate();
+                        return deletedRoom;
+                    } else {
+                        // 없으면 새로 생성
+                        ChatRoom newChatRoom = new ChatRoom(currentUser, otherUser);
+                        ChatRoom saved = chatRoomRepository.save(newChatRoom);
+
+                        // 새 채팅방 알림 전송 - ChatRoomResponse로 변환
+                        ChatRoomResponse otherUserResponse = ChatRoomResponse.of(saved, otherUserId, null, 0L);
+                        notificationService.sendNewChatRoomNotification(otherUserId, otherUserResponse);
+
+                        return saved;
+                    }
                 });
 
         // 7. 응답 생성
@@ -93,6 +109,15 @@ public class ChatService {
         if (role1 == UserRole.USER && role2 == UserRole.USER) {
             throw new CustomException(ExceptionCode.CHAT_BETWEEN_USERS_NOT_ALLOWED);
         }
+    }
+
+    /**
+     * Soft delete된 채팅방 조회 (isDeleted = true)
+     */
+    private ChatRoom findDeletedChatRoom(Long userId1, Long userId2) {
+        // @SQLRestriction을 우회하기 위해 네이티브 쿼리 사용
+        return chatRoomRepository.findDeletedByTwoUsers(userId1, userId2)
+                .orElse(null);
     }
 
     /**
@@ -123,15 +148,31 @@ public class ChatService {
         // 5. 기존 채팅방 조회
         ChatRoom chatRoom = chatRoomRepository.findByTwoUsers(buyer.getId(), seller.getId())
                 .orElseGet(() -> {
-                    // 6. 없으면 새로 생성 (BUYER_SELLER 타입)
-                    ChatRoom newChatRoom = new ChatRoom(buyer, seller, deal);
-                    return chatRoomRepository.save(newChatRoom);
+                    // Soft delete된 채팅방 찾기
+                    ChatRoom deletedRoom = chatRoomRepository.findDeletedByTwoUsersAndDeal(buyer.getId(), seller.getId(), dealId)
+                            .orElse(null);
+
+                    if (deletedRoom != null) {
+                        // 재활성화
+                        deletedRoom.reactivate();
+                        return deletedRoom;
+                    } else {
+                        // 새로 생성
+                        ChatRoom newChatRoom = new ChatRoom(buyer, seller, deal);
+                        ChatRoom saved = chatRoomRepository.save(newChatRoom);
+
+                        // 람다 내부에서 직접 알림 전송
+                        Long otherUserId = userId.equals(buyer.getId()) ? seller.getId() : buyer.getId();
+                        // 새 채팅방 알림 전송 - ChatRoomResponse로 변환
+                        ChatRoomResponse otherUserResponse = ChatRoomResponse.of(saved, otherUserId, null, 0L);
+                        notificationService.sendNewChatRoomNotification(otherUserId, otherUserResponse);
+
+                        return saved;
+                    }
                 });
 
         // 7. 응답 생성
         Long unreadCount = chatMessageRepository.countUnreadMessages(chatRoom.getId(), userId);
-
-        log.info("구매자-판매자 채팅방 생성/조회 - Deal: {}, Buyer: {}, Seller: {}", dealId, buyer.getId(), seller.getId());
 
         return ChatRoomResponse.of(chatRoom, userId, null, unreadCount);
     }
@@ -251,6 +292,7 @@ public class ChatService {
 
         // 5. 응답 생성 (Map에서 조회)
         return chatRooms.stream()
+                .filter(chatRoom -> chatRoom.isVisibleTo(userId))  // 나간 채팅방 제외
                 .map(chatRoom -> {
                     String lastMessage = lastMessageMap.get(chatRoom.getId());
                     Long unreadCount = unreadCountMap.getOrDefault(chatRoom.getId(), 0L);
@@ -298,6 +340,29 @@ public class ChatService {
 
         // 3. 메시지 생성
         ChatMessage message = new ChatMessage(chatRoom, sender, request.getContent());
+        chatMessageRepository.save(message);
+
+        return ChatMessageResponse.from(message);
+    }
+
+    /**
+     * 메시지 전송 (검증 없음 - WebSocket 전용)
+     * - 채팅방 입장 시 이미 검증했으므로 재검증 생략
+     * - 성능 최적화
+     */
+    @Transactional
+    public ChatMessageResponse sendMessageWithoutValidation(Long chatRoomId, AuthUser authUser, String filteringMessage) {
+
+        Long userId = authUser.getId();
+
+        // 검증 생략, 바로 조회
+        ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.CHAT_ROOM_NOT_FOUND));
+
+        User sender = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.NOT_FOUND_USER));
+
+        ChatMessage message = new ChatMessage(chatRoom, sender, filteringMessage);
         chatMessageRepository.save(message);
 
         return ChatMessageResponse.from(message);
@@ -379,5 +444,171 @@ public class ChatService {
         // 읽음 처리 - 이미 validateAndGetChatRoom()에서 권한 확인했으므로 검증 생략
         int updatedCount = chatMessageRepository.markAllAsRead(chatRoomId, userId);
 
+        if (updatedCount > 0) {
+            // 알림 서비스 사용
+            notificationService.sendUnreadCountUpdate(userId, chatRoomId, 0L);
+        }
+
+    }
+
+    /**
+     * 채팅 가능한 사용자 목록 조회
+     * - 관리자 목록 (항상 채팅 가능)
+     * - 거래 상대방 목록 (경매 낙찰 후 채팅 가능)
+     * - 이미 채팅방 있는 사용자 제외
+     *
+     * @param includeExisting true: 기존 채팅방 사용자 포함, false: 제외 (기본값)
+     */
+    public AvailableUsersResponse getAvailableUsers(AuthUser authUser, boolean includeExisting) {
+
+        Long userId = authUser.getId();
+        UserRole userRole = authUser.getRole();
+
+        // 1. 기존 채팅방 목록 조회 (중복 체크용)
+        List<ChatRoom> existingChatRooms = chatRoomRepository.findByUserId(userId);
+        Set<Long> existingUserIds = existingChatRooms.stream()
+                .flatMap(room -> {
+                    Long user1Id = room.getUser1().getId();
+                    Long user2Id = room.getUser2().getId();
+                    return java.util.stream.Stream.of(user1Id, user2Id);
+                })
+                .filter(id -> !id.equals(userId))  // 자기 자신 제외
+                .collect(Collectors.toSet());
+
+        // 2. 관리자 목록 조회
+        List<AvailableUsersResponse.UserSummary> admins = getAdminUsers(userId, existingUserIds, includeExisting);
+
+        // 3. 거래 상대방 목록 조회
+        List<AvailableUsersResponse.DealUserSummary> dealUsers = getDealUsers(userId, userRole, existingUserIds, includeExisting);
+
+        return new AvailableUsersResponse(admins, dealUsers);
+    }
+
+    /**
+     * 관리자 목록 조회
+     */
+    private List<AvailableUsersResponse.UserSummary> getAdminUsers(Long currentUserId, Set<Long> existingUserIds, boolean includeExisting) {
+
+        // ADMIN, APPRAISER 역할 조회
+        // 현재는 ADMIN만 사용함.
+        List<User> admins = userRepository.findByRoleIn(List.of(UserRole.ADMIN, UserRole.APPRAISER));
+
+        return admins.stream()
+                // 본인 제외
+                .filter(admin -> !admin.getId().equals(currentUserId))
+                .filter(admin -> {
+                    boolean hasExisting = existingUserIds.contains(admin.getId());
+                    // includeExisting이 false면 기존 채팅방 있는 사용자 제외
+                    return includeExisting || !hasExisting;
+                })
+                .map(admin -> AvailableUsersResponse.UserSummary.from(
+                        admin,
+                        existingUserIds.contains(admin.getId())
+                ))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 거래 상대방 목록 조회 - 동일 사용자 상품 그룹핑
+     */
+    private List<AvailableUsersResponse.DealUserSummary> getDealUsers(Long userId, UserRole userRole, Set<Long> existingUserIds, boolean includeExisting) {
+
+        // 관리자는 거래 상대방 없음
+        if (userRole == UserRole.ADMIN || userRole == UserRole.APPRAISER) {
+            return List.of();
+        }
+
+        // 1. 사용자별 거래 정보를 담을 Map
+        // Key: 상대방 userId, Value: (User, List<DealInfo>)
+        Map<Long, UserWithDeals> userDealsMap = new LinkedHashMap<>();
+
+        // 2. 내가 구매자인 거래 조회 (판매자들)
+        List<Deal> buyerDeals = dealRepository.findSuccessfulDealsByBuyerId(userId);
+        for (Deal deal : buyerDeals) {
+            User seller = deal.getAppraise().getItem().getSeller();
+            Long sellerId = seller.getId();
+            String itemName = deal.getAppraise().getItem().getName();
+
+            // 거래 정보 추가
+            userDealsMap.computeIfAbsent(sellerId, k -> new UserWithDeals(seller))
+                    .addDeal(deal.getId(), itemName, "판매자");
+        }
+
+        // 3. 내가 판매자인 거래 조회 (구매자들)
+        List<Deal> sellerDeals = dealRepository.findSuccessfulDealsBySellerId(userId);
+        for (Deal deal : sellerDeals) {
+            User buyer = deal.getAuction().getBuyer();
+            Long buyerId = buyer.getId();
+            String itemName = deal.getAppraise().getItem().getName();
+
+            // 거래 정보 추가
+            userDealsMap.computeIfAbsent(buyerId, k -> new UserWithDeals(buyer))
+                    .addDeal(deal.getId(), itemName, "구매자");
+        }
+
+        // 4. Map을 DealUserSummary로 변환
+        return userDealsMap.entrySet().stream()
+                .filter(entry -> {
+                    Long otherUserId = entry.getKey();
+                    boolean hasExisting = existingUserIds.contains(otherUserId);
+
+                    // includeExisting이 false면 기존 채팅방 있는 사용자 제외
+                    return includeExisting || !hasExisting;
+                })
+                .map(entry -> {
+                    Long otherUserId = entry.getKey();
+                    UserWithDeals userWithDeals = entry.getValue();
+                    boolean hasExisting = existingUserIds.contains(otherUserId);
+
+                    return AvailableUsersResponse.DealUserSummary.from(
+                            userWithDeals.user,
+                            userWithDeals.deals,
+                            hasExisting
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 사용자와 거래 목록을 담는 내부 클래스
+     */
+    private static class UserWithDeals {
+        private final User user;
+        private final List<AvailableUsersResponse.DealInfo> deals;
+
+        public UserWithDeals(User user) {
+            this.user = user;
+            this.deals = new ArrayList<>();
+        }
+
+        public void addDeal(Long dealId, String itemName, String dealRole) {
+            deals.add(AvailableUsersResponse.DealInfo.of(dealId, itemName, dealRole));
+        }
+    }
+
+    /**
+     * 채팅방 나가기
+     * - 한쪽만 나가면: 해당 유저에게만 숨김
+     * - 양쪽 다 나가면: 소프트 삭제
+     */
+    @Transactional
+    public void leaveChatRoom(Long chatRoomId, AuthUser authUser) {
+
+        Long userId = authUser.getId();
+
+        ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.CHAT_ROOM_NOT_FOUND));
+
+        if (!chatRoom.isParticipant(userId)) {
+            throw new CustomException(ExceptionCode.CHAT_PERMISSION_DENIED);
+        }
+
+        // 채팅방 나가기
+        chatRoom.leave(userId);
+
+        // 양쪽 다 나갔으면 알림 서비스 사용
+        if (chatRoom.isDeleted()) {
+            notificationService.sendRoomDeletedNotification(chatRoom.getUser1().getId(), chatRoom.getUser2().getId(), chatRoom.getId());
+        }
     }
 }

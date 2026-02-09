@@ -39,7 +39,7 @@ public class ItemService {
      * @return
      */
     @Transactional
-    public ItemCreatedResponse itemCreated(AuthUser authUser, ItemCreatedRequest request, MultipartFile itemImage) {
+    public ItemCreatedResponse createItem(AuthUser authUser, ItemCreatedRequest request, MultipartFile itemImage) {
         //유저(판매자) 조회
         User seller = userRepository.findById(authUser.getId())
                 .orElseThrow(() -> new CustomException(ExceptionCode.NOT_FOUND_USER));
@@ -76,36 +76,30 @@ public class ItemService {
     }
 
     /**
-     * 상품 상세 조회
+     * 상품 상세 조회 (관리자)
      *
      * @param id 상품 조회 ID
      * @return 상품 상세 정보 응답 DTO
      */
     @Transactional(readOnly = true)
-    public ItemGetDetailResponse itemGetDetail(Long id) {
+    public ItemGetDetailResponse getDetailItem(Long id) {
 
         //상품 조회 및 검증 404에러
         Item item = itemRepository.findItemDetail(id)
                 .orElseThrow(() -> new CustomException(ExceptionCode.NOT_FOUND_ITEM));
-//        JPA 정적쿼리 item 상세 조회
-//        Item item = itemRepository.findById(id)
-//                .orElseThrow(() -> new CustomException(ExceptionCode.NOT_FOUND_ITEM));
 
         // 조회된 엔티티 -> DTO로 변환
         return ItemGetDetailResponse.from(item);
     }
 
     /**
-     * (페이징) 상품 목록 조회
+     * (페이징) 상품 목록 조회 (관리자)
      *
      * @param pageable 페이지, 사이즈 정보
      * @return 페이징된 상품 목록 응답 DTO
      */
     @Transactional(readOnly = true)
-    public Page<ItemGetListResponse> itemGetAll(Pageable pageable) {
-
-        //상품 목록 조회 -> 기존 JPA
-//        Page<Item> result = itemRepository.findAllBy(pageable);
+    public Page<ItemGetListResponse> getAll(Pageable pageable) {
 
         //상품 목록 조회 -> QueryDsl 적용
         Page<Item> result = itemRepository.findItemList(pageable);
@@ -142,7 +136,7 @@ public class ItemService {
      * @return 페이징 적용된 상품 목록 조회 응답 DTO
      */
     @Transactional(readOnly = true)
-    public Page<ItemGetListResponse> getItemList(AuthUser authUser, Pageable pageable) {
+    public Page<ItemGetListResponse> getMyItemList(AuthUser authUser, Pageable pageable) {
         //유저 조회
         User seller = userRepository.findById(authUser.getId())
                 .orElseThrow(() -> new CustomException(ExceptionCode.NOT_FOUND_USER));
@@ -162,7 +156,7 @@ public class ItemService {
      * @return 수정된 상품 정보를 담은 응답 DTO
      */
     @Transactional
-    public ItemUpdateResponse itemUpdated(AuthUser authUser, Long id, ItemUpdateRequest request, MultipartFile itemImage) {
+    public ItemUpdateResponse updateItem(AuthUser authUser, Long id, ItemUpdateRequest request, MultipartFile itemImage) {
 
         //상품 조회 - 존재 안할 시 404에러
         Item item = itemRepository.findById(id)
@@ -182,15 +176,10 @@ public class ItemService {
         }
 
         //이미지 수정
-        String imageUrl = ItemImageUpdate(item, itemImage); // 원본 이미지
-
-        String oldImage = item.getImage();
-
-        //새 이미지 업로드
-        String newImage = uploadImageIfPresent(itemImage);
+        String finalImageUrl = itemImageUpdate(item, itemImage);
 
         //수정메소드 불러오기
-        item.update(request.getName(), request.getHopePrice(), request.getDescription(), imageUrl);
+        item.update(request.getName(), request.getHopePrice(), request.getDescription(), finalImageUrl);
 
         //수정 결과 DTO로 변환하여 반환
         return ItemUpdateResponse.from(item);
@@ -203,10 +192,9 @@ public class ItemService {
      * @param authUser 로그안한 사용자 정보
      */
     @Transactional
-    public void itemDeleted(Long id, AuthUser authUser) {
+    public void deleteItem(Long id, AuthUser authUser) {
         //삭제 대상 상품 조회
         Item item = itemRepository.findById(id)
-
                 .orElseThrow(() -> new CustomException(ExceptionCode.NOT_FOUND_ITEM));
 
         // 상품 작성자와 로그인한 회원 정보 다르면 삭제 불가
@@ -245,7 +233,7 @@ public class ItemService {
      * @return 최종 저장될 이미지
      */
     //수정된 이미지 업로드
-    private String ItemImageUpdate(Item item, MultipartFile itemImage) {
+    private String itemImageUpdate(Item item, MultipartFile itemImage) {
         //데이터 불러오기
         String oldImage = item.getImage();
 

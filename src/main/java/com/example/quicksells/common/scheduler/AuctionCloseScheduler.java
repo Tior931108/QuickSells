@@ -3,7 +3,7 @@ package com.example.quicksells.common.scheduler;
 import com.example.quicksells.common.enums.AuctionStatusType;
 import com.example.quicksells.domain.auction.entity.Auction;
 import com.example.quicksells.domain.auction.repository.AuctionRepository;
-import com.example.quicksells.domain.auction.service.AuctionSettlementService;
+import com.example.quicksells.domain.payment.service.AuctionSettlementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
