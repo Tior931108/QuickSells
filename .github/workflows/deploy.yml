@@ -86,7 +86,6 @@ jobs:
             docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
             docker rm -f quicksells-app 2>/dev/null || true
             
-            # 컨테이너 실행 시 인프라 서버 주소 주입
             docker run -d \
               --name quicksells-app \
               --network host \
@@ -104,12 +103,9 @@ jobs:
               -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
               -e TOSS_CLIENT_KEY="${{ secrets.TOSS_CLIENT_KEY }}" \
               -e TOSS_SECRET_KEY="${{ secrets.TOSS_SECRET_KEY }}" \
-              \
-              # --- 인프라(ELK/Monitoring) 연결 설정 추가 ---
               -e LOGSTASH_HOST="${{ secrets.INFRA_SERVER_IP }}" \
               -e LOGSTASH_PORT="5001" \
               -e PROMETHEUS_PATH="/actuator/prometheus" \
-              \
               ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
             
             docker image prune -af
