@@ -60,7 +60,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 1. 현재 로드밸런서가 어느 그룹을 보는지 확인
       - name: Check current Target Group
         id: check-tg
         run: |
@@ -74,7 +73,6 @@ jobs:
             echo "TARGET_TG_ARN=${{ secrets.TG_BLUE_ARN }}" >> $GITHUB_ENV
           fi
 
-      # 2. 대기 중인 서버에 배포
       - name: Deploy to Target Server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -103,22 +101,16 @@ jobs:
               -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
               -e TOSS_CLIENT_KEY="${{ secrets.TOSS_CLIENT_KEY }}" \
               -e TOSS_SECRET_KEY="${{ secrets.TOSS_SECRET_KEY }}" \
-              -e LOGSTASH_HOST="${{ secrets.INFRA_SERVER_IP }}" \
-              -e LOGSTASH_PORT="5001" \
+              -e LOGSTASH_DESTINATION="${{ secrets.INFRA_SERVER_IP }}:5001" \
               -e PROMETHEUS_PATH="/actuator/prometheus" \
               ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
             
             docker image prune -af
 
-      # 3. 새 서버가 뜰 때까지 잠시 대기
       - name: Wait for Health Check
         run: |
-          echo "Waiting for application to start..."
           sleep 40
 
-          echo "Post-wait sanity check (container running)"
-
-      # 4. 리스너 스위칭 (블루 <-> 그린 교체)
       - name:  Switch Target Group
         run: |
           aws elbv2 modify-listener \
