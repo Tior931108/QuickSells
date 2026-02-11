@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Blue-Green Switching
+name: CI/CD Pipeline - Host Level Blue-Green
 
 on:
   push:
@@ -13,20 +13,19 @@ env:
 
 jobs:
   build-and-push:
-    name: Build & Push to ECR
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: ambassadors/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
           cache: 'gradle'
 
-      - name: Grant execute permission for gradlew
+      - name: Grant execute permission
         run: chmod +x gradlew
 
       - name: Build with Gradle
@@ -42,55 +41,65 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and Push Docker Image
+      - name: Build & Push Docker Image
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker build \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   deploy:
-    name: Blue-Green Switch Deploy
+    name: Deploy to EC2 (Internal Blue-Green)
     runs-on: ubuntu-latest
     needs: build-and-push
+    strategy:
+      matrix:
+        host: [ "${{ secrets.EC2_HOST }}", "${{ secrets.EC2_HOST2 }}" ] # 두 대의 인스턴스 동시 배포
+
     steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Check current Target Group
-        id: check-tg
-        run: |
-          CURRENT_TG_ARN=$(aws elbv2 describe-listeners --listener-arn ${{ secrets.ALB_LISTENER_ARN }} --query "Listeners[0].DefaultActions[0].TargetGroupArn" --output text)
-          
-          if [ "$CURRENT_TG_ARN" == "${{ secrets.TG_BLUE_ARN }}" ]; then
-            echo "TARGET_HOST=${{ secrets.EC2_HOST2 }}" >> $GITHUB_ENV
-            echo "TARGET_TG_ARN=${{ secrets.TG_GREEN_ARN }}" >> $GITHUB_ENV
-          else
-            echo "TARGET_HOST=${{ secrets.EC2_HOST }}" >> $GITHUB_ENV
-            echo "TARGET_TG_ARN=${{ secrets.TG_BLUE_ARN }}" >> $GITHUB_ENV
-          fi
-
-      - name: Deploy to Target Server
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ env.TARGET_HOST }}
+          host: ${{ matrix.host }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
+
+            echo "🔎 현재 가동 중인 컨테이너 확인"
+            # 블루가 떠 있으면 그린을 타겟으로, 아니면 블루를 타겟으로 지정
+            if [ "$(docker ps -q -f name=quicksells-blue)" ]; then
+              TARGET=green
+              ACTIVE=blue
+              TARGET_PORT=8082
+              OLD_PORT=8081
+            else
+              TARGET=blue
+              ACTIVE=green
+              TARGET_PORT=8081
+              OLD_PORT=8082
+            fi
+
+            echo "배포 전략: $ACTIVE(기존) -> $TARGET(신규)"
+
+            echo "ECR 로그인"
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
-            docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
-            docker rm -f quicksells-app 2>/dev/null || true
-            
-            # 로그 디렉토리 권한 설정 (Filebeat가 읽을 수 있도록)
+
+            echo "새 이미지 Pull: ${{ github.sha }}"
+            docker pull ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+            echo "기존 $TARGET 컨테이너 제거 (만약 있다면)"
+            docker rm -f quicksells-$TARGET 2>/dev/null || true
+
+            echo "로그 디렉토리 권한 설정"
             sudo mkdir -p /home/ubuntu/logs
             sudo chown -R ubuntu:ubuntu /home/ubuntu/logs
 
+            echo "$TARGET 컨테이너 실행 (Port: $TARGET_PORT)"
             docker run -d \
-              --name quicksells-app \
-              --network host \
+              --name quicksells-$TARGET \
+              -p $TARGET_PORT:8080 \
               --restart always \
               -v /home/ubuntu/logs:/home/ubuntu/logs \
               -e DB_URL="${{ secrets.DB_URL }}" \
@@ -108,16 +117,32 @@ jobs:
               -e TOSS_SECRET_KEY="${{ secrets.TOSS_SECRET_KEY }}" \
               -e LOGGING_FILE_PATH="/home/ubuntu/logs/quicksells.log" \
               -e PROMETHEUS_PATH="/actuator/prometheus" \
-              ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+              ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+            echo "⏳ 헬스 체크 중... (Target Port: $TARGET_PORT)"
+            for i in {1..15}; do
+              sleep 5
+              if curl -s http://localhost:$TARGET_PORT/actuator/health | grep "UP"; then
+                echo "헬스 체크 성공!"
+                break
+              fi
+              if [ $i -eq 15 ]; then
+                echo "헬스 체크 실패. 배포를 중단합니다."
+                docker stop quicksells-$TARGET
+                exit 1
+              fi
+            done
+
+            echo "Nginx 리버스 프록시 전환 ($OLD_PORT -> $TARGET_PORT)"
+            # service.conf 파일에서 포트 번호 부분만 교체
+            sudo sed -i "s/127.0.0.1:$OLD_PORT/127.0.0.1:$TARGET_PORT/" /etc/nginx/conf.d/service.conf
             
-            docker image prune -af
+            # Nginx 설정 유효성 검사 후 재시작
+            sudo nginx -t && sudo nginx -s reload
 
-      - name: Wait for Health Check
-        run: |
-          sleep 40
+            echo "🧹 구버전 ($ACTIVE) 컨테이너 정리"
+            # 10초 대기 후 안전하게 종료 (잔여 트래픽 처리)
+            sleep 10
+            docker rm -f quicksells-$ACTIVE 2>/dev/null || true
 
-      - name: Switch Target Group
-        run: |
-          aws elbv2 modify-listener \
-            --listener-arn ${{ secrets.ALB_LISTENER_ARN }} \
-            --default-actions Type=forward,TargetGroupArn=${{ env.TARGET_TG_ARN }}
+            echo "✨ 배포 완료!"
