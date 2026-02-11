@@ -59,7 +59,7 @@ spring:
         debug: true
 
 frontend:
-  redirect-url: http://localhost:3000
+  redirect-url: http://quicksells-alb-2088931655.ap-northeast-2.elb.amazonaws.com
 
 backend:
   server-name: localhost
@@ -90,4 +90,3 @@ management:
     web:
       exposure:
         include: ["prometheus", "health"]
-
