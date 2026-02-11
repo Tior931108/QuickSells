@@ -16,19 +16,13 @@ public class RedissonConfig {
 
     @Bean
     public RedissonClient redissonClient() {
+
         Config config = new Config();
         config.setCodec(new StringCodec());
+        config.setNettyThreads(Runtime.getRuntime().availableProcessors() * 2);
+        config.setLockWatchdogTimeout(1500);
+        config.useSingleServer().setAddress("redis://" + redisHost + ":6379");
 
-        // 로그를 찍어 실제 주소가 뭔지 확인 (선택 사항)
-        System.out.println("🚩 Connecting to Redis at: " + redisHost);
-
-        // "redis://" 프로토콜이 중복되지 않도록 처리
-        String address = redisHost.startsWith("redis://") ? redisHost : "redis://" + redisHost;
-        if (!address.contains(":")) {
-            address += ":6379";
-        }
-
-        config.useSingleServer().setAddress(address);
         return Redisson.create(config);
     }
 }
