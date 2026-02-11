@@ -54,21 +54,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
 
-    # matrix에서 secrets를 직접 못 쓰므로 env로 먼저 선언합니다.
     env:
       HOST_A: ${{ secrets.EC2_HOST }}
       HOST_B: ${{ secrets.EC2_HOST2 }}
 
     strategy:
       matrix:
-        # matrix에는 env 키 이름을 문자열로 넣어줍니다.
         host_key: [HOST_A, HOST_B]
 
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          # matrix의 키에 따라 실제 env의 IP 주소를 매핑합니다.
           host: ${{ matrix.host_key == 'HOST_A' && env.HOST_A || env.HOST_B }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
@@ -106,11 +103,11 @@ jobs:
             echo "$TARGET 컨테이너 실행 (Port: $TARGET_PORT)"
             docker run -d \
               --name quicksells-$TARGET \
-              --add-host=host.docker.internal:host-gateway \ 
+              --add-host=host.docker.internal:host-gateway \
               -p $TARGET_PORT:8080 \
               --restart always \
               -v /home/ubuntu/logs:/home/ubuntu/logs \
-              -e SPRING_DATA_REDIS_HOST=host.docker.internal \ 
+              -e SPRING_DATA_REDIS_HOST=host.docker.internal \
               -e DB_URL="${{ secrets.DB_URL }}" \
               -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
               -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
@@ -136,7 +133,7 @@ jobs:
                 break
               fi
               if [ $i -eq 15 ]; then
-                echo " 헬스 체크 실패. 배포를 중단합니다."
+                echo "헬스 체크 실패. 배포를 중단합니다."
                 docker stop quicksells-$TARGET
                 exit 1
               fi
