@@ -16,20 +16,20 @@ services:
     networks:
       - infra_net
 
-  logstash:
-    image: docker.elastic.co/logstash/logstash:9.0.2
-    container_name: logstash
-    depends_on:
-      - elasticsearch
-    volumes:
-      - ./logstash/pipeline:/usr/share/logstash/pipeline
-    ports:
-      - 5001:5001
-      - 9600:9600
-    environment:
-      - LS_JAVA_OPTS=-Xms256m -Xmx256m
-    networks:
-      - infra_net
+#  logstash:
+#    image: docker.elastic.co/logstash/logstash:9.0.2
+#    container_name: logstash
+#    depends_on:
+#      - elasticsearch
+#    volumes:
+#      - ./logstash/pipeline:/usr/share/logstash/pipeline
+#    ports:
+#      - 5001:5001
+#      - 9600:9600
+#    environment:
+#      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+#    networks:
+#      - infra_net
 
   kibana:
     image: docker.elastic.co/kibana/kibana:9.0.2
