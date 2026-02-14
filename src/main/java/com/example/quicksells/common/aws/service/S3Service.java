@@ -55,6 +55,7 @@ public class S3Service {
                     .bucket(bucket)
                     .key(key)
                     .contentType(file.getContentType())
+                    .acl("public-read")
                     .build();
 
             // 파일 데이터를 RequestBody로 변환 (AWS SDK가 이해하도록)
