@@ -135,11 +135,18 @@ public class AuctionService {
         auctionHistoryRepository.save(newAuctionHistory);
 
         // 경매 정보
+        // 경매 정보
         BidInfo bidInfo = new BidInfo(
                 foundAuction.getId(),
+                foundBuyer.getId(),
                 foundBuyer.getName(),
-                foundAuction.getBidPrice()
+                foundAuction.getBidPrice(),
+                foundAuction.getAppraise().getItem().getName()
         );
+
+// 이벤트 퍼블리싱
+        eventPublisher.publishEvent(bidInfo);
+
 
         // 이벤트 퍼블리싱
         eventPublisher.publishEvent(bidInfo);
