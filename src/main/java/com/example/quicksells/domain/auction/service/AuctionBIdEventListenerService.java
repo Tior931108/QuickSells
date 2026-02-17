@@ -16,7 +16,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class AuctionBIdEventListenerService {
 
     private final RedissonClient redisson;
-    private static final String TOPIC_NAME = "topic:auction:bid:";
+    private static final String TOPIC_NAME = "topic:live:auction:bid:";
 
     // 디폴트지만 명시적으로 커밋 이후 실행
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
