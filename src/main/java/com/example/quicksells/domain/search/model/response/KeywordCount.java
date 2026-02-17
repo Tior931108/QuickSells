@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class KeywordCount {
     private String keyword;
     private Long count;
+    private Long lastSearchTime;
 }
