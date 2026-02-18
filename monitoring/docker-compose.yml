@@ -1,33 +1,33 @@
-version: '3'
+version: '3.8'
 
 services:
-# Prometheus 설정
- prometheus:
-  image: prom/prometheus
-  container_name: prometheus
-  volumes:
-    - ./prometheus.yml:/etc/prometheus/prometheus.yml
-  ports:
-    - "9090:9090"
-  networks:
-    - monitoring
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - infra_net
 
-# Grafana 설정
- grafana:
-  image: grafana/grafana
-  container_name: grafana
-  ports:
-    - "3000:3000"
-  environment:
-    - GF_SECURITY_ADMIN_PASSWORD=admin  # 기본 Grafana 비밀번호 설정
-  volumes:
-    - grafana_data:/var/lib/grafana
-  networks:
-    - monitoring
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - infra_net
 
 networks:
- monitoring:
-  driver: bridge
+  infra_net:
+    driver: bridge
 
 volumes:
- grafana_data:
+  grafana_data:

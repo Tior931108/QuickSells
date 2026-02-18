@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.2
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=docker-cluster
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    networks:
+      - infra_net
+
+#  logstash:
+#    image: docker.elastic.co/logstash/logstash:9.0.2
+#    container_name: logstash
+#    depends_on:
+#      - elasticsearch
+#    volumes:
+#      - ./logstash/pipeline:/usr/share/logstash/pipeline
+#    ports:
+#      - 5001:5001
+#      - 9600:9600
+#    environment:
+#      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+#    networks:
+#      - infra_net
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.0.2
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+    ports:
+      - 5601:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - infra_net
+
+networks:
+  infra_net:
+    driver: bridge
+
+volumes:
+  es_data:

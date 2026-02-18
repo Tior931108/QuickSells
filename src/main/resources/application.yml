@@ -13,7 +13,7 @@ spring:
 
   data:
     redis:
-      host: localhost
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: 6379
 
   jpa:
@@ -59,7 +59,7 @@ spring:
         debug: true
 
 frontend:
-  redirect-url: http://localhost:5173
+  redirect-url: http://quicksells-alb-2088931655.ap-northeast-2.elb.amazonaws.com
 
 backend:
   server-name: localhost
@@ -89,7 +89,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: "prometheus"
-
-app:
-  init-data: true
+        include: ["prometheus", "health"]
