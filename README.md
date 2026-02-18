@@ -92,7 +92,7 @@
 
 ---
 
-## 🚀 [4] 기술적 도전과 해결
+## [4] 기술적 도전과 해결
 
 > 프로젝트 개발 과정에서 직면한 문제와 해결 과정을 정리했습니다.  
 > 각 항목을 클릭하면 상세 문서를 확인할 수 있습니다.
@@ -144,7 +144,7 @@
 
 ---
 
-## 🛠️ [6] 감사의 글 
+## [6] 감사의 글 
 💡 이 프로젝트의 완성도를 높여준 핵심 기술 스택과 오픈소스 커뮤니티에 감사를 표합니다.
 
 ### 🏗️ **Core Framework & Library**
@@ -181,11 +181,11 @@
 
 ## 👥 [8] 팀원 소개 및 소감
 
-|       <img src="img.png" width="150">       |     <img src="img_1.png" width="150">      |   <img src="img_2.png" width="150">    | <img src="img_3.png" width="150"> |         <img src="img_4.png" width="150">         |
-|:-------------------------------------------:|:------------------------------------------:|:--------------------------------------:|:---:|:-------------------------------------------------:|
-|                   **정용준**                   |                  **이용준**                   |                **고아람**                 | **이청운** |                      **최정혁**                      |
-| [Tior931108](https://github.com/Tior931108) | [d0ngx2-2](https://github.com/d0ngx2-2) | [aram0117](https://github.com/aram0117) | [Leechungwoon](https://github.com/Leechungwoon) | [jhyeok-design](https://github.com/jhyeok-design) |
-|                    "소감"                     |                    "소감"                    |                  "소감"                  | "소감" |                       "소감"                        |
+| <img src="docs/images/profile_1.png" width="150"> | <img src="docs/images/profile_2.png" width="150"> | <img src="docs/images/profile_3.png" width="150"> | <img src="docs/images/profile_4.png" width="150"> | <img src="docs/images/profile_5.png" width="150"> |
+|:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|
+|                      **정용준**                      |                      **이용준**                      |                      **고아람**                      |                      **이청운**                      |                      **최정혁**                      |
+|    [Tior931108](https://github.com/Tior931108)    |      [d0ngx2-2](https://github.com/d0ngx2-2)      |      [aram0117](https://github.com/aram0117)      |  [Leechungwoon](https://github.com/Leechungwoon)  | [jhyeok-design](https://github.com/jhyeok-design) |
+|                       "소감"                        |                       "소감"                        |                       "소감"                        |                       "소감"                        |                       "소감"                        |
 
 
 
