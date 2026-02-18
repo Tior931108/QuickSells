@@ -17,9 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -33,16 +31,15 @@ public class SearchCacheService {
     private final SearchRankingSnapshotService searchRankingSnapshotService;
     private final SearchRepository searchRepository;
 
-    //ZSET
-    private static final String POPULAR_RANKING_KEY = "ranking:keyword"; // 누적 인기 검색어 랭킹
+    //Realtime ranking(10min sliding)
     private static final String REALTIME_PREFIX = "relation:keyword:"; //검색 기록
     private static final String REALTIME_ACTIVE_KEY = "relation:active"; //활성 키워드 목록
-    private static final String DAILY_RANKING_PREFIX = "rank:daily:"; //일일 랭킹 키 prefix
-
     private static final int WINDOW_MINUTES = 10; //10분 윈도우
     private static final int TTL_MINUTES = 15;//TTL 15분 윈도우
-    private static final int MAX_KEYWORDS = 100; //최대 검색어 개수
-    private static final Duration DAILY_RANKING_TTL = Duration.ofDays(8); //일일 랭킹 키 prefix
+
+    // Weekly ranking (rolling 7 days)
+    private static final String WEEK_RANKING_PREFIX = "rank:weekly:"; //주일 랭킹 키 prefix
+    private static final Duration WEEKLY_RANKING_TTL = Duration.ofDays(7); //일일 랭킹 키 prefix
 
     /**
      * 캐시에 적용된 검색 메소드
@@ -61,7 +58,7 @@ public class SearchCacheService {
     }
 
     /**
-     * 누적 인기 검색어 TOP 조회
+     * 주간 인기 검색어 TOP 조회
      * <p>
      * POPULAR_RANKING_KEY (ZSET)
      * score = 누적 검색 횟수
@@ -71,12 +68,15 @@ public class SearchCacheService {
      */
     public List<String> getPopularKeywordsList() {
 
+        String weeklyKey = WEEKLY_RANKING_KEY();
+
         //score 내림차순으로 카운트 상위 10개 조회
-        Set<Object> count = redisTemplate.opsForZSet().reverseRange(POPULAR_RANKING_KEY, 0, 9);
+        Set<Object> count = redisTemplate.opsForZSet().reverseRange(weeklyKey, 0, 9);
+
 
         //  Null 방어 -> Redis 비어 있거나 조회 실패시 빈 리스트
         if (count == null || count.isEmpty()) {
-            return List.of();
+            return getFallbackKeywords(); //폴백 기능 추가
         }
 
         //Object를 String으로 반환
@@ -93,17 +93,17 @@ public class SearchCacheService {
      * POPULAR_RANKING_KEY에서 (keyword, score) TOP10 조회
      * DB에 upsert(있으면 update, 없으면 insert)
      */
-    @Scheduled(fixedDelay = 20_000) //10분 마다
-//    @Scheduled(fixedDelay = 600_000) //10분 마다
+
+    @Scheduled(fixedDelay = 1_800_000) //30분 마다
     @Transactional
     public void snapshotTop10toDb() {
 
-        // 일일 랭킹 키
-        String dailyKey = todayDailKey();
+        // 주일 랭킹 키
+        String weeklyKey = WEEKLY_RANKING_KEY();
 
         //조회수 기준 내림차순, 상위 10개 데이터 조회
         Set<ZSetOperations.TypedTuple<Object>> dailyTop10 =
-                redisTemplate.opsForZSet().reverseRangeWithScores(dailyKey, 0, 9);
+                redisTemplate.opsForZSet().reverseRangeWithScores(weeklyKey, 0, 9);
 
         if (dailyTop10 == null || dailyTop10.isEmpty()) return;
 
@@ -114,7 +114,8 @@ public class SearchCacheService {
             String keyword = data.getValue().toString();
             Long dailyCount = data.getScore().longValue();
 
-            searchRankingSnapshotService.upsertSnapshot(keyword,dailyCount);
+            //DB 저장 일일 카운트
+            searchRankingSnapshotService.upsertSnapshot(keyword, dailyCount);
         }
     }
 
@@ -134,72 +135,96 @@ public class SearchCacheService {
     }
 
     /**
-     * 일일 키 생성용
+     * 주간 키 생성용
      */
-    private String todayDailKey() {
-        String daily = LocalDate.now(ZoneId.of("Asia/Seoul")).toString();
-        return DAILY_RANKING_PREFIX + daily;
+    private String WEEKLY_RANKING_KEY() {
+        return "rank:weekly";
     }
 
     /**
      *
      * @param keyword
      */
-    private void incrementDailyRanking(String keyword) {
-        String dailyKey = todayDailKey();
+    private void incrementRanking(String keyword) {
 
-        //일일 랭킹에 +1
-        redisTemplate.opsForZSet().incrementScore(dailyKey, keyword, 1);
+        // 주간 랭킹 키
+        String weeklyKey = WEEKLY_RANKING_KEY();
+
+        //주간 랭킹 조회수 +1
+        redisTemplate.opsForZSet().incrementScore(weeklyKey, keyword, 1);
 
         //TTL 설정
-        redisTemplate.expire(dailyKey, DAILY_RANKING_TTL);
-    }
-
-    private List<String> getDailyTop10() {
-        String dailKey = todayDailKey();
-
-        Set<Object> set = redisTemplate.opsForZSet().reverseRange(dailKey, 0, 9);
-
-        //리턴만 하면 NPE 발생하여 수정
-        if (set == null || set.isEmpty()) return List.of();
-        return set.stream().map(Object::toString).toList();
+        redisTemplate.expire(weeklyKey, WEEKLY_RANKING_TTL);
     }
 
     /**
-     * 검색어 중복 클릭 방지 기능 (첫 클릭에만 카운트)
-     *
-     * @param clientKey 사용자 구분하는 값
-     * @param keyword   사용자가 입력한 검색어
-     *
+     * 실시간 인기 검색어 TOP10(슬라이딩 윈도우 기반 10분)
+     * 1. 최근에 활성화된 키워드 목록 조회
+     * 2. 각 키워드별로 윈도우 범위 내 검색 수 계산
+     * 3. 의미 없는 키워드 정리 -> 슬라이딩 위도우 시간 동안 키워드 카운트 0되면 삭제
+     * 4. 검색 수 기준 내림차순 정렬 -> Top10반환
+     * 5. 순위가 빈 경우 빈리스트 반환 -> 실시간 트래픽만 반영하게함
      *
      */
-    public void notDoubleClick(String clientKey, String keyword) {
-        // 키워드 검증
-        if (keyword == null) return;
+    public List<String> getRealtimeTop10() {
+        long now = System.currentTimeMillis();
+        long windowStart = now - (WINDOW_MINUTES * 60 * 1000L); //10분
+        long ttlStart = now - TTL_MINUTES * 60 * 1000L; // 캐시 생존 시간 15분
 
-        //공백 정규화
-        String writeKeyword = keyword.trim().replaceAll("\\s+", " ");
-        if (writeKeyword.isEmpty()) {
-            return;
+        //REALTIME_ACTIVE_KEY -> 최근 검색된 키워드 모아둔 인덱스 역할
+        Set<ZSetOperations.TypedTuple<Object>> activeKeywords = redisTemplate.opsForZSet().rangeByScoreWithScores(REALTIME_ACTIVE_KEY, ttlStart, now);
+
+        // 활성 키워드 자체가 없다면 fallback
+        if (activeKeywords == null || activeKeywords.isEmpty()) {
+            //빈리스트 반환
+            return List.of();
         }
 
-        // 중복 방지 키 설정 -> popular:dup:{사용자 식별자}:{검색어}
-        String dupKey = "popular:dup:" + clientKey + ":" + writeKeyword;
+        List<KeywordCount> keywordCounts = new ArrayList<>();
 
-        //Redis에 중복 확인용 키 저장 -> 첫 클릭 후 중복 클릭시 3초동안 카운트 X
-        Boolean first = redisTemplate.opsForValue()
-                .setIfAbsent(dupKey, "1", Duration.ofSeconds(3));
+        // 각 키워드별로 실시간 검색 수 계산
+        for (ZSetOperations.TypedTuple<Object> tuple : activeKeywords) {
+            String keyword = String.valueOf(tuple.getValue());
+            Long lastSearchTime = tuple.getScore().longValue();
+            String keywordKey = REALTIME_PREFIX + keyword;
 
-        // 키가 없을 때 저장 후 3초 클릭 방지
-        if (!Boolean.TRUE.equals(first)) { //setIfAbsent()는 처음 저장 시 true = 성공임
-            return;
+            //오래된 데이터 삭제 (메모리 절약)
+            redisTemplate.opsForZSet().removeRangeByScore(keywordKey, 0, windowStart);
+
+
+            //현재 윈도우 기준 검색 횟수 계싼
+            Long count = redisTemplate.opsForZSet().count(keywordKey, windowStart, now);
+
+            //윈도우 내 검색 횟수 계산
+            if (count != null && count > 0) {
+                keywordCounts.add(new KeywordCount(keyword, count, lastSearchTime));
+            } else {
+
+                //  검색 횟수가 0인 경우 키워드 삭제
+                redisTemplate.delete(keywordKey);
+
+                //의미 없으면 active에서 제거
+                redisTemplate.opsForZSet().remove(REALTIME_ACTIVE_KEY, keyword);
+            }
         }
 
-        //일일 랭킹 기록 + TTL
-        incrementDailyRanking(writeKeyword);
+        //실시간 검색어 정렬해서 내림차순 정렬 후 TOP10 반환
+        List<String> realtimeTop10 = keywordCounts.stream()
+                .sorted((a, b) -> {
+                    int countCompare = Long.compare(b.getCount(), a.getCount());
+                    if (countCompare != 0) {
+                        return countCompare; //count가 다르면 count 정렬
+                    }
+                    //count가 같으면 최근 검색 시간으로 정렬(내림차순)
+                    //정렬 1순위 count 내림차순, 2순위 lastSearchTime(내림차순 = 최신순)
+                    return Long.compare(b.getLastSearchTime(), a.getLastSearchTime());
+                })
+                .limit(10)
+                .map(keywordCount -> keywordCount.getKeyword())
+                .toList();
 
-        //실시간 검색어 기록
-        addRealTimeRecord(writeKeyword);
+        if (realtimeTop10.isEmpty()) return getFallbackKeywords();
+        return realtimeTop10;
     }
 
     /**
@@ -229,72 +254,59 @@ public class SearchCacheService {
     }
 
     /**
-     * 특정 검색어의 실시간 카운트 조회 최근 (10분)
-     * REALTIME_PREFIX+keyword ZSET에서 score 범위(start~now)에 속하는 상품 개수를 카운트로 계산
+     * 검색어 중복 클릭 방지 기능 (첫 클릭에만 카운트)
      *
-     * @param keyword
-     * @return
+     * @param clientKey 사용자 구분하는 값
+     * @param keyword   사용자가 입력한 검색어
+     *                  주간 랭킹 카운트
+     *                  실시간 검색어 기록
      */
+    public void notDoubleClick(String clientKey, String keyword) {
+        // 키워드 검증
+        if (keyword == null) return;
+
+        //공백 정규화
+        String writeKeyword = keyword.trim().replaceAll("\\s+", " ");
+        if (writeKeyword.isEmpty()) {
+            return;
+        }
+
+        // 중복 방지 키 설정 -> popular:dup:{사용자 식별자}:{검색어}
+        String dupKey = "popular:dup:" + clientKey + ":" + writeKeyword;
+
+        //Redis에 중복 확인용 키 저장 -> 첫 클릭 후 중복 클릭시 3초동안 카운트 X
+        Boolean first = redisTemplate.opsForValue()
+                .setIfAbsent(dupKey, "1", Duration.ofSeconds(3));
+
+        // 키가 없을 때 저장 후 3초 클릭 방지
+        if (!Boolean.TRUE.equals(first)) { //setIfAbsent()는 처음 저장 시 true = 성공임
+            //중복 클릭인 경우 카운트 X
+            return;
+        }
+
+        //주간 랭킹 기록 + TTL
+        incrementRanking(writeKeyword);
+
+        //실시간 검색어 기록
+        addRealTimeRecord(writeKeyword);
+    }
 
     /**
-     * 실시간 인기 검색어 TOP10(슬라이딩 윈도우 기반 10분)
-     * 1. 최근에 활성화된 키워드 목록 조회
-     * 2. 각 키워드별로 윈도우 범위 내 검색 수 계산
-     * 3. 의미 없는 키워드 정리 -> 슬라이딩 위도우 시간 동안 키워드 카운트 0되면 삭제
-     * 4. 검색 수 기준 내림차순 정렬 -> Top10반환
-     * 5. 리스트 빈 경우 fallback 처리
+     * 주간
      *
+     * @return
      */
-    public List<String> getRealtimeTop10() {
-        long now = System.currentTimeMillis();
-        long teeMinAgo = now - (WINDOW_MINUTES * 60 * 1000L); //10분
-        long ttlAgo = now - TTL_MINUTES * 60 * 1000L; // 캐시 생존 시간 15분
+    private List<String> getWeekTop10() {
 
-        //REALTIME_ACTIVE_KEY -> 최근 검색된 키워드 모아둔 인덱스 역할
-        Set<Object> activeKeywords = redisTemplate.opsForZSet().rangeByScore(REALTIME_ACTIVE_KEY, ttlAgo, now);
+        //주간인기검색 키
+        String weeklyKey = WEEKLY_RANKING_KEY();
 
-        // 활성 키워드 자체가 없다면 fallback
-        if (activeKeywords == null || activeKeywords.isEmpty()) {
-            return getFallbackKeywords();
-        }
+        //주간 렝킹 Top10
+        Set<Object> set = redisTemplate.opsForZSet().reverseRange(weeklyKey, 0, 9);
 
-        List<KeywordCount> keywordCounts = new ArrayList<>();
-
-        // 각 키워드별로 실시간 검색 수 계산
-        for (Object object : activeKeywords) {
-            String keyword = String.valueOf(object);
-            String keywordKey = REALTIME_PREFIX + keyword;
-
-            //오래된 데이터 삭제 (메모리 절약)
-            redisTemplate.opsForZSet().removeRangeByScore(keywordKey, 0, teeMinAgo);
-
-            //현재 윈도우 기준 검색 횟수 계싼
-            Long count = redisTemplate.opsForZSet().count(keywordKey, teeMinAgo, now);
-
-            if (count != null && count > 0) {
-                keywordCounts.add(new KeywordCount(keyword, count));
-            } else {
-
-                //  검색 횟수가 0인 경우 키워드 삭제
-                redisTemplate.delete(keywordKey);
-
-                //의미 없으면 active에서 제거
-                redisTemplate.opsForZSet().remove(REALTIME_ACTIVE_KEY, keyword);
-            }
-        }
-        //실시간 검색어 리스트 개수 체크(5개 이하 fallback)
-        if (keywordCounts.size() < 5) {
-            return getFallbackKeywords();
-        }
-
-        //실시간 검색어 정렬해서 내림차순 정렬 후 TOP10 반환
-        List<String> realtimeTop10 = keywordCounts.stream()
-                .sorted((a, b) -> Long.compare(b.getCount(), a.getCount()))
-                .limit(10)
-                .map(keywordCount -> keywordCount.getKeyword())
-                .toList();
-
-        return realtimeTop10;
+        //리턴만 하면 NPE 발생하여 수정
+        if (set == null || set.isEmpty()) return List.of();
+        return set.stream().map(Object::toString).toList();
     }
 
     /**
@@ -305,9 +317,9 @@ public class SearchCacheService {
     public List<String> getFallbackKeywords() {
 
         //Redis/Cache 기반 인기 검색어 -> 최근까지 검색된 기록 우선순위
-        List<String> dailyTop10 = getDailyTop10();
-        if (!dailyTop10.isEmpty()) {
-            return dailyTop10;
+        List<String> weeklyTop10 = getWeekTop10();
+        if (!weeklyTop10.isEmpty()) {
+            return weeklyTop10;
         }
 
         //DB에서 조회
@@ -315,3 +327,4 @@ public class SearchCacheService {
         return dbTop10;
     }
 }
+

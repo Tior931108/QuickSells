@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 public class BidInfo {
 
     private Long auctionId;
+    private Long buyerId;
     private String buyerName;
     private Integer bidPrice;
+    private String itemName;
 }

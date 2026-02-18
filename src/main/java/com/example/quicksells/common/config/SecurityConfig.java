@@ -106,7 +106,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of("http://localhost:3000"));                        // 모든 오리진(출처)에서의 요청을 허용
+        config.setAllowedOrigins(List.of("http://localhost:3000",
+                "http://localhost:5173"));                        // 모든 오리진(출처)에서의 요청을 허용
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")); // 허용되는 HTTP 메서드를 지정
         config.setAllowedHeaders(List.of("*"));                                            // 모든 헤더를 허용
         config.setExposedHeaders(List.of("Authorization"));                                // 브라우저에 노출할 응답 헤더를 지정

@@ -59,7 +59,7 @@ spring:
         debug: true
 
 frontend:
-  redirect-url: http://localhost:3000
+  redirect-url: http://localhost:5173
 
 backend:
   server-name: localhost
@@ -90,3 +90,6 @@ management:
     web:
       exposure:
         include: "prometheus"
+
+app:
+  init-data: true

@@ -64,8 +64,11 @@ public class SearchService {
         boolean allowed = slidingWindowRateLimiter.isAllowed(userId, 10, 5);
 
         if (!allowed) {
+
+            //10초 동안 남은 요청 횟수
             int reaming = slidingWindowRateLimiter.getRemainingRequests(userId, 10, 5);
 
+            //다음 요청까지 남은 시간
             long retryAfter = slidingWindowRateLimiter.getAfter(userId, 10);
 
             throw new CustomException(ExceptionCode.RATE_LIMIT_EXCEEDED);
