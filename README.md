@@ -7,14 +7,12 @@
 ## 목차
 1. [프로젝트 개요](#1-프로젝트-개요)
 2. [기술적 개요](#2-기술적-개요)
-3. [시작하기](#3-시작하기)
-4. [사용자 가이드](#4-사용자-가이드)
-5. [트러블슈팅](#5-트러블슈팅)
-6. [로드맵](#6-로드맵)
-7. [기여하기](#7-기여하기)
-8. [감사의 글](#8-감사의-글)
-9. [문의처](#9-문의처)
-10. [라이선스](#10-라이선스)
+3. [서비스 흐름](#3-서비스-흐름)
+4. [기술적 도전과 해결](#4-기술적-도전과-해결)
+5. [로드맵](#5-로드맵)
+6. [감사의 글](#6-감사의-글)
+7. [문의처](#7-문의처)
+8. [팀원 소개 및 소감](#8-팀원-소개-및-소감)
 
 ---
 
@@ -80,7 +78,7 @@
 
 ---
 
-## [3] 서비스 흐름 (Service Flow)
+## [3] 서비스 흐름
 > 사용자의 서비스 진입부터 경매 낙찰 및 거래 완료까지의 전체 프로세스입니다.
 
 ![](https://velog.velcdn.com/images/fluxing/post/798616e2-df89-4f30-86c9-da8f26b54521/image.png)
@@ -94,7 +92,7 @@
 
 ---
 
-## 🚀 [4]. 기술적 도전과 해결
+## 🚀 [4] 기술적 도전과 해결
 
 > 프로젝트 개발 과정에서 직면한 문제와 해결 과정을 정리했습니다.  
 > 각 항목을 클릭하면 상세 문서를 확인할 수 있습니다.
@@ -134,7 +132,7 @@
 
 ---
 
-## [5] 로드맵
+## [5] 로드맵 ❌(수정 필요)
 💡 **Quick-Sells**의 현재 진행 상황과 향후 업데이트 계획입니다.
 
 | 마일스톤 | 예정 일정 | 상세 내용 | 상태 |
@@ -146,40 +144,48 @@
 
 ---
 
-## [7] 기여하기
-✨(기능 추가) / 🐞(버그 수정) / 📄(문서화) / 🔨(리팩토링) / ⚡(성능 최적화)
-이 프로젝트에 기여하고 싶으신 분은 언제든 Pull Request를 보내주세요!
-1. 프로젝트를 **Fork** 합니다.
-2. 새 **Feature Branch**를 생성합니다 (`git checkout -b feature/AmazingFeature`).
-3. 변경 사항을 **Commit** 합니다 (`git commit -m 'Add some AmazingFeature'`).
-4. Branch에 **Push** 합니다 (`git push origin feature/AmazingFeature`).
-5. **Open a Pull Request**를 통해 제안해 주세요.
+## 🛠️ [6] 감사의 글 
+💡 이 프로젝트의 완성도를 높여준 핵심 기술 스택과 오픈소스 커뮤니티에 감사를 표합니다.
 
-🙌 **기여해주신 분들:** [기여자 명단 보기](./CONTRIBUTORS.md)
+### 🏗️ **Core Framework & Library**
+* **[Java 17](https://www.oracle.com/java/technologies/downloads/#java17)** - 안정적인 애플리케이션 실행 환경 제공
+* **[Spring Boot](https://spring.io/projects/spring-boot)** - 견고하고 확장 가능한 백엔드 환경 제공
+* **[Redis](https://redis.io/)** - 고성능 인 메모리 데이터 구조 저장소 및 캐싱 활용
+* **[Docker](https://www.docker.com/)** - 컨테이너 기반의 일관된 개발 및 배포 환경 보장
+
+### 📊 **Monitoring & Analysis**
+* [Prometheus](https://prometheus.io/) & [Grafana](https://grafana.com/) - 실시간 시스템 메트릭 수집 및 시각화
+* [ELK Stack (Elasticsearch, Logstash, Kibana)](https://www.elastic.co/kr/elastic-stack) - 대규모 로그 수집 및 분석 아키텍처 구축
+* [Filebeat](https://www.elastic.co/kr/beats/filebeat) - 효율적인 로그 데이터 전송 및 정제
+
+### 🔒 **Security & Infrastructure**
+* [Spring Security](https://spring.io/projects/spring-security) & [JWT](https://jwt.io/) - 안전한 인증 및 권한 관리 체계 구축
+* [AWS Cloud](https://aws.amazon.com/) - EC2, RDS, S3, Route 53 등 안정적인 인프라 환경 제공
+
+### 🎨 **Design & Communication**
+* [Figma](https://www.figma.com/) - 사용자 경험(UX) 및 인터페이스(UI) 상세 설계
+* [Lucidchart](https://www.lucidchart.com/) - 협업 중심의 다이어그램 및 순서도 설계
+* [Excalidraw](https://excalidraw.com/) - 직관적인 핸드드로잉 스타일의 와이어프레임 및 아이디어 스케치
+* [Slack](https://slack.com/) & [ZEP](https://zep.us/) - 효율적인 팀 협업 및 실시간 커뮤니케이션 환경 제공
 
 ---
+**Special Thanks to Open Source Community** 이 프로젝트는 전 세계 수많은 개발자들의 헌신으로 만들어진 오픈소스 라이브러리를 기반으로 합니다. 건강한 오픈소스 생태계를 지향하며, 저희 팀의 고민이 담긴 결과물을 **검토해 주셔서** 다시 한번 감사드립니다.
 
-## [8] 감사의 글
-💡 이 프로젝트를 개발하는 데 영감을 주거나 도움을 준 리소스들입니다.
-
-* [Shields.io](https://shields.io/) - 프로젝트 가독성을 높여주는 배지 아이콘 제공
-* [Spring Initializr](https://start.spring.io/) - 빠르고 견고한 백엔드 구조 생성 도움
-* [Flaticon](https://www.flaticon.com/) - 직관적인 사용자 경험을 위한 서비스 아이콘 소스
-* [Draw.io](https://app.diagrams.net/) - 시스템 아키텍처 설계를 위한 다이어그램 도구
-* **Open Source Community** - 이 프로젝트에 사용된 수많은 라이브러리의 개발자분들께 감사드립니다.
-
----
-
-## [9] 문의처
+## [7] 문의처 ❌(수정 필요)
 📧 **이메일:** your-email@example.com
 📋 **GitHub Issues:** [Issue 등록하기](https://github.com/your-id/quick-sells/issues)
 
-프로젝트 이용 중 궁금한 점이 있거나 제휴 제안이 있으시면 위 이메일로 연락 부탁드립니다. 최대한 빠르게 답변해 드리겠습니다!
+프로젝트 검토 중 궁금한 점이 있으시면 위 이메일로 연락 부탁드립니다. 최대한 빠르게 답변해 드리겠습니다!
 
 ---
 
-## [10] 라이선스
-이 프로젝트는 **MIT License**를 따릅니다.
-상업적 이용, 수정 및 배포가 가능하나, 저작권 및 라이선스 고지 사항을 포함해야 합니다. 자세한 내용은 [LICENSE](./LICENSE) 파일을 확인하세요.
+## 👥 [8] 팀원 소개 및 소감
 
-Copyright (c) 2026 Quick-Sells Team
+|       <img src="img.png" width="150">       |     <img src="img_1.png" width="150">      |   <img src="img_2.png" width="150">    | <img src="img_3.png" width="150"> |         <img src="img_4.png" width="150">         |
+|:-------------------------------------------:|:------------------------------------------:|:--------------------------------------:|:---:|:-------------------------------------------------:|
+|                   **정용준**                   |                  **이용준**                   |                **고아람**                 | **이청운** |                      **최정혁**                      |
+| [Tior931108](https://github.com/Tior931108) | [d0ngx2-2](https://github.com/d0ngx2-2) | [aram0117](https://github.com/aram0117) | [Leechungwoon](https://github.com/Leechungwoon) | [jhyeok-design](https://github.com/jhyeok-design) |
+|                    "소감"                     |                    "소감"                    |                  "소감"                  | "소감" |                       "소감"                        |
+
+
+
