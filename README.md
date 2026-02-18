@@ -102,7 +102,7 @@
 
 ### 🚀 성능 개선 (Performance Tuning)
 시스템의 응답 속도, 자원 사용량 등 사용자 경험을 향상시킨 기록입니다.
-* [QueryDSL Fetch Join을 통한 N+1 문제 해결 및 조회 성능 20배 개선](./docs/performance/querydsl_performance_improvement.md)
+* [QueryDSL Fetch Join을 통한 N+1 문제 해결 및 조회 성능 20배 개선](docs/performance/querydsl_performance_improvement.md)
 
 ### 🛠️ 트러블슈팅 (Troubleshooting)
 운영 및 개발 중 발생한 예기치 못한 버그와 기술적 장애를 해결한 사례입니다.
