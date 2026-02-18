@@ -94,22 +94,47 @@
 
 ---
 
-## [4] 기술적 도전과 해결
-> 프로젝트 개발 과정에서 직면한 문제들과 이를 해결하기 위한 기술적 고민의 기록입니다. 각 항목을 클릭하면 상세한 해결 과정을 확인할 수 있습니다.
+## 🚀 [4]. 기술적 도전과 해결
 
-### ⚖️ 기술적 의사결정 (Technical Decision)
-특정 기술을 왜 선택했는지, 대안은 무엇이었는지에 대한 아키텍처적 고민입니다.
+> 프로젝트 개발 과정에서 직면한 문제와 해결 과정을 정리했습니다.  
+> 각 항목을 클릭하면 상세 문서를 확인할 수 있습니다.
 
-### 🚀 성능 개선 (Performance Tuning)
-시스템의 응답 속도, 자원 사용량 등 사용자 경험을 향상시킨 기록입니다.
-* [QueryDSL Fetch Join을 통한 N+1 문제 해결 및 조회 성능 20배 개선](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/querydsl_performance_improvement.md)
 
-### 🛠️ 트러블슈팅 (Troubleshooting)
-운영 및 개발 중 발생한 예기치 못한 버그와 기술적 장애를 해결한 사례입니다.
+### 1️⃣ 기술적 의사결정 (Technical Decisions)
+
+> 특정 기술을 선택한 이유와 대안 비교, 설계 고민을 정리했습니다.
+
+- ⚖️ [**PointWallet 낙관적 락(Optimistic Lock) 도입 결정**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/tech_decision_wallet_optimistic_lock.md)
+
+- ⚖️ [**실시간 채팅 시스템 WebSocket STOMP 도입**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/tech_decision_websocket_stomp.md)
+
+- ⚖️ [**경매 입찰 동시성 제어를 위한 Lock 설계**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/concurrency_control_redisson_lock.md)
 
 ---
 
-## [6] 로드맵
+### 2️⃣ 성능 개선 (Performance Tuning)
+
+> 조회 성능, 응답 속도, 쿼리 최적화를 통해 사용자 경험을 개선한 사례입니다.
+
+- 🚀 [**QueryDSL Fetch Join을 통한 N+1 문제 해결 및 조회 성능 20배 개선**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/querydsl_performance_improvement.md)
+
+- 🚀 [**채팅방 조회 및 메시지 전송 시 N+1 쿼리 문제 최적화**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/chat_performance_optimization.md)
+
+---
+
+### 3️⃣ 트러블슈팅 (Troubleshooting)
+
+> 개발 및 운영 중 발생한 실제 장애 해결 사례입니다.
+
+- ✅ [**결제 승인 멱등성 보장으로 중복 적립 방지**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/payment_idempotency_protection.md)
+
+- ✅ [**Redis 기반 상품 검색어 중복 카운트 방지**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/redis_search_deduplication.md)
+
+- ✅ [**WebSocket 메시지 전송 시 Jackson 역직렬화 에러 해결**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/websocket_deserialization_troubleshooting.md)
+
+---
+
+## [5] 로드맵
 💡 **Quick-Sells**의 현재 진행 상황과 향후 업데이트 계획입니다.
 
 | 마일스톤 | 예정 일정 | 상세 내용 | 상태 |

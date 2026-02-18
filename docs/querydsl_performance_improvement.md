@@ -1,6 +1,6 @@
 # 📈 QueryDSL을 통한 대용량 거래 내역 조회 성능 개선
 
-## 🔍 문제 상황 (Issue)
+## 🔍 문제 상황 
 * **데이터 규모:** 약 5만 건의 테스트 데이터 기준
 * **성능 저하:** 거래 내역(Deal) 조회 API 호출 시 응답 시간 **4~5초** 소요
 * **원인 분석:** * Deal → Item → User(Seller/Buyer) 연관관계 접근 시 **LAZY 로딩**으로 인한 **N+1 문제** 발생
@@ -8,7 +8,7 @@
 
 
 
-## 📌 해결 과정 (Analysis & Solution)
+## 📌 해결 과정 
 
 ### 1. 문제 코드 분석
 기존 Spring Data JPA 방식은 페이징 처리 시 연관된 엔티티들을 루프를 돌며 개별 조회하여 성능이 기하급수적으로 하락했습니다.
@@ -53,7 +53,7 @@ public class DealRepositoryImpl implements DealCustomRepository {
     }
 }
 ```
-### 📊 개선 전/후 비교 (Performance Comparison)
+### 📊 개선 전/후 비교
 
 #### 1. 개선 전 (Spring Data JPA)
 * **쿼리 수:** 1 + 50,000 + 50,000 = **100,001개 실행**
@@ -99,7 +99,7 @@ Hibernate: SELECT COUNT(d.id) FROM deals d;
 
 ---
 
-### 📝 회고록 (Retrospective)
+### 📝 회고록 
 
 #### 💡 배운 점
 * **N+1 문제의 심각성 체감**: 5만 건의 데이터에서 응답 시간이 4초 이상 소요되는 것을 확인하며, 실 서비스(수십만 건 이상) 환경에서는 이 문제가 시스템 다운으로 이어질 수 있는 치명적인 결함임을 깨달았습니다.
