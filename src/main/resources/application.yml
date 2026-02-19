@@ -89,3 +89,11 @@ management:
     web:
       exposure:
         include: ["prometheus", "health"]
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+server:
+  port: 8080
+  forward-headers-strategy: native
