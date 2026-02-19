@@ -144,10 +144,6 @@ public class AuctionService {
                 foundAuction.getAppraise().getItem().getName()
         );
 
-// 이벤트 퍼블리싱
-        eventPublisher.publishEvent(bidInfo);
-
-
         // 이벤트 퍼블리싱
         eventPublisher.publishEvent(bidInfo);
 
