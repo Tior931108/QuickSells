@@ -1,6 +1,7 @@
 package com.example.quicksells.domain.auction.service;
 
 import com.example.quicksells.domain.auction.model.dto.BidInfo;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RPatternTopic;
@@ -20,7 +21,7 @@ public class AuctionBidSubscriberService {
     private final SimpMessagingTemplate messagingTemplate;
     private static final String TOPIC_NAME_PATTERN = "topic:auction:bid:*";
 
-    @EventListener(ApplicationReadyEvent.class)
+    @PostConstruct
     public void setUp() {
 
         // 래디슨에 저장된 토픽을 패턴으로 찾음

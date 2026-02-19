@@ -22,9 +22,6 @@ public class AuctionBidPublisher {
 
         RTopic topic = redisson.getTopic(topicName, new JsonJacksonCodec());
 
-        long count = topic.publish(bidInfo);
-        System.out.println("Redis 수신자 수: " + count);
-
         topic.publish(bidInfo);
     }
 }
