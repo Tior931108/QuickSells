@@ -1,10 +1,7 @@
 package com.example.quicksells.common.config;
 
 import com.example.quicksells.common.filter.JwtAuthenticationFilter;
-import com.example.quicksells.common.security.CustomAccessDeniedHandler;
-import com.example.quicksells.common.security.CustomAuthenticationEntryPoint;
-import com.example.quicksells.common.security.CustomOAuth2UserService;
-import com.example.quicksells.common.security.OAuthSuccessHandler;
+import com.example.quicksells.common.security.*;
 import com.example.quicksells.common.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +11,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
+import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizationRequestRepository;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -24,8 +24,8 @@ import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
-@EnableWebSecurity // spring security 활성화
-@EnableMethodSecurity(securedEnabled = true) // 권한 검사 활성
+@EnableWebSecurity
+@EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
@@ -37,91 +37,81 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                // CSRF 보호 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
-                // 세션 사용 안함
+                // JWT 사용을 위해 STATELESS 설정 유지
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                // 폼 로그인 비활성화
                 .formLogin(AbstractHttpConfigurer::disable)
-
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // 로그아웃 기능 추가
                 .logout(AbstractHttpConfigurer::disable)
-                // 인증/ 인가 실패 시 커스텀 응답 반환
                 .exceptionHandling(conf ->
                         conf.authenticationEntryPoint(authenticationEntryPoint)
                                 .accessDeniedHandler(accessDeniedHandler)
                 )
-                // HTTP Basic 인증 비활성화
                 .httpBasic(AbstractHttpConfigurer::disable)
-                // 세션 기반 기능 제거
                 .rememberMe(AbstractHttpConfigurer::disable)
+
+                // OAuth2 로그인 설정 수정
                 .oauth2Login(oauth2 -> oauth2
-                        .authorizationEndpoint(auth -> auth.baseUri("/api/auth/login/oauth2"))
+                        .authorizationEndpoint(auth -> auth
+                                .baseUri("/api/auth/login/oauth2")
+                                // [핵심 추가] STATELESS 환경이므로 인증 요청 정보를 쿠키에 보관
+                                .authorizationRequestRepository(cookieAuthorizationRequestRepository())
+                        )
+                        .redirectionEndpoint(redirection -> redirection
+                                .baseUri("/login/oauth2/code/*")
+                        )
                         .userInfoEndpoint(user -> user.userService(customOAuth2UserService))
                         .successHandler(oAuthSuccessHandler())
                 )
-                // 요청 URL 권한 설정
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/logout").authenticated()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/mail","/api/verify-code").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/oauth/google/success/**").permitAll()
-                        // 채팅 API 추가 (인증 필요)
                         .requestMatchers("/api/chat/**").authenticated()
-                        // WebSocket 엔드포인트 추가
-                        .requestMatchers(
-                                "/ws-stomp/**",           // WebSocket 연결 엔드포인트
-                                "/chat-test.html"         // 실제 사용할 채팅 페이지
-                        ).permitAll()
-                        // swagger ui 설정 추가
-                        .requestMatchers("/swagger-ui/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**").permitAll()
-                        .requestMatchers("/swagger-resources/**").permitAll()
-                        .requestMatchers("/favicon.ico").permitAll()
+                        .requestMatchers("/ws-stomp/**", "/chat-test.html").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/favicon.ico").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers(
-                                "/api/payments/config",   // clientKey 제공 (공개키만)
-                                "/toss-test.html",
-                                "/payment-success.html",
-                                "/payment-fail.html"
-                        ).permitAll()
-                        //log monitoring prometheus
-                        .requestMatchers("/actuator/prometheus").permitAll()
+                        .requestMatchers("/api/payments/config", "/toss-test.html", "/payment-success.html", "/payment-fail.html").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                // Spring Security 필터보다 JWT 필터를 먼저 실행
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
-    // 교차 출처 리소스 공유 (CORS: Cross-Origin Resource Sharing)
-    // 브라우저가 자신의 출처가 아닌 다른 어떤 출처로부터 자원을 요청하는 것에 대해 허용하도록 서버가 이를 허가해 주는 HTTP 헤더 기반 메커니즘
-    // 전역 교차 출처 요청 처리 구성 메서드
+    // [추가] 쿠키 기반의 OAuth2 인증 요청 저장소
+    // 별도의 클래스 구현 없이 기본 세션 저장소를 쓰면 STATELESS에서 무조건 터집니다.
+    // 만약 프로젝트에 HttpCookieOAuth2AuthorizationRequestRepository 클래스가 없다면
+    // 아래 빈 설정을 위해 해당 클래스를 생성해야 합니다.
+    @Bean
+    public AuthorizationRequestRepository<OAuth2AuthorizationRequest> cookieAuthorizationRequestRepository() {
+        return new HttpCookieOAuth2AuthorizationRequestRepository();
+    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
         config.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "http://localhost:5173",
-                "http://quicksells-alb-2088931655.ap-northeast-2.elb.amazonaws.com"));                        // 모든 오리진(출처)에서의 요청을 허용
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")); // 허용되는 HTTP 메서드를 지정
-        config.setAllowedHeaders(List.of("*"));                                            // 모든 헤더를 허용
-        config.setExposedHeaders(List.of("Authorization"));                                // 브라우저에 노출할 응답 헤더를 지정
-        config.setAllowCredentials(true);                                                      // 인증된 요청을 허용 (ex: HTTP 인증)
+                "http://quicksells-alb-2088931655.ap-northeast-2.elb.amazonaws.com"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);                                // 모든 경로에 대해 CORS 설정을 적용
-
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 
     @Bean
-    public OAuthSuccessHandler oAuthSuccessHandler() { return new OAuthSuccessHandler(jwtUtil); }
+    public OAuthSuccessHandler oAuthSuccessHandler() {
+        return new OAuthSuccessHandler(jwtUtil);
+    }
 }
