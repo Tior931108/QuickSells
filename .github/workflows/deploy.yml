@@ -3,7 +3,7 @@ name: CI/CD Pipeline - Host Level Blue-Green
 on:
   push:
     branches:
-      - feat/cicd-cjh
+      - refactor/cicd-cjh
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
