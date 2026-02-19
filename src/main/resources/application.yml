@@ -36,9 +36,8 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            redirect-uri: "{baseUrl}/login/oauth2/code/google"
+            redirect-uri: "http://quicksells-alb-2088931655.ap-northeast-2.elb.amazonaws.com/login/oauth2/code/google"
             authorization-grant-type: authorization_code
-            client-authentication-method: client_secret_post
             client-name: Google
             scope:
               - profile
