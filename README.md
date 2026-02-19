@@ -10,9 +10,8 @@
 3. [서비스 흐름](#3-서비스-흐름)
 4. [기술적 도전과 해결](#4-기술적-도전과-해결)
 5. [로드맵](#5-로드맵)
-6. [감사의 글](#6-감사의-글)
-7. [문의처](#7-문의처)
-8. [팀원 소개 및 소감](#8-팀원-소개-및-소감)
+6. [문의처](#6-문의처)
+7. [팀원 소개 및 소감](#7-팀원-소개-및-소감)
 
 ---
 
@@ -62,7 +61,7 @@
 > 전체적인 클라우드 인프라와 서비스 구성도입니다.
 
 
-  ![](https://velog.velcdn.com/images/fluxing/post/8fed6684-ad56-436c-87a4-b2f673423c04/image.png)
+![infra_1.png](docs/images/infra_1.png)
 
 
 * **AWS 클라우드 환경:** ALB를 통한 부하 분산 및 퍼블릭/프라이빗 서브넷 분리로 보안 강화
@@ -71,7 +70,7 @@
 ### CI/CD 파이프라인 (Deployment)
 > GitHub Actions와 Docker를 이용한 자동화 배포 구조입니다.
 
-![](https://velog.velcdn.com/images/fluxing/post/f026c695-0278-4d3a-82ff-58e26312e195/image.png)
+![infra_2.png](docs/images/infra_2.png)
 
 * **자동화 프로세스:** 코드 Push 시 테스트 → 빌드 → Docker Image 생성 → ECR 업로드 → EC2 배포 완료
 * **모니터링:** ELK 그리고 Prometheus와 Grafana를 연동하여 서버 상태 실시간 관제
@@ -108,8 +107,6 @@
 
 - ⚖️ [**실시간 채팅 시스템 WebSocket STOMP 도입**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/tech_decision_websocket_stomp.md)
 
-- ⚖️ [**경매 입찰 동시성 제어를 위한 Lock 설계**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/concurrency_control_redisson_lock.md)
-
 ---
 
 ### 2️⃣ 성능 개선 (Performance Tuning)
@@ -120,17 +117,17 @@
 
 - 🚀 [**채팅방 조회 및 메시지 전송 시 N+1 쿼리 문제 최적화**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/chat_performance_optimization.md)
 
+- 🚀 [**Redis 기반 상품 검색어 중복 카운트 방지**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/redis_search_deduplication.md)
+
+- 🚀 [**결제 승인 멱등성 보장으로 중복 적립 방지**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/payment_idempotency_protection.md)
+
 ---
 
 ### 3️⃣ 트러블슈팅 (Troubleshooting)
 
 > 개발 및 운영 중 발생한 실제 장애 해결 사례입니다.
 
-- ✅ [**결제 승인 멱등성 보장으로 중복 적립 방지**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/payment_idempotency_protection.md)
-
-- ✅ [**Redis 기반 상품 검색어 중복 카운트 방지**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/redis_search_deduplication.md)
-
-- ✅ [**WebSocket 메시지 전송 시 Jackson 역직렬화 에러 해결**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/websocket_deserialization_troubleshooting.md)
+- ✅️ [**경매 입찰 동시성 제어를 위한 Lock 설계**](https://github.com/Tior931108/QuickSells/blob/feat/readme-cjh/docs/concurrency_control_redisson_lock.md)
 
 ---
 
@@ -146,47 +143,20 @@
 
 ---
 
-## [6] 감사의 글 
-💡 이 프로젝트의 완성도를 높여준 핵심 기술 스택과 오픈소스 커뮤니티에 감사를 표합니다.
-
-### 🏗️ **Core Framework & Library**
-* **[Java 17](https://www.oracle.com/java/technologies/downloads/#java17)** - 안정적인 애플리케이션 실행 환경 제공
-* **[Spring Boot](https://spring.io/projects/spring-boot)** - 견고하고 확장 가능한 백엔드 환경 제공
-* **[Redis](https://redis.io/)** - 고성능 인 메모리 데이터 구조 저장소 및 캐싱 활용
-* **[Docker](https://www.docker.com/)** - 컨테이너 기반의 일관된 개발 및 배포 환경 보장
-
-### 📊 **Monitoring & Analysis**
-* [Prometheus](https://prometheus.io/) & [Grafana](https://grafana.com/) - 실시간 시스템 메트릭 수집 및 시각화
-* [ELK Stack (Elasticsearch, Logstash, Kibana)](https://www.elastic.co/kr/elastic-stack) - 대규모 로그 수집 및 분석 아키텍처 구축
-* [Filebeat](https://www.elastic.co/kr/beats/filebeat) - 효율적인 로그 데이터 전송 및 정제
-
-### 🔒 **Security & Infrastructure**
-* [Spring Security](https://spring.io/projects/spring-security) & [JWT](https://jwt.io/) - 안전한 인증 및 권한 관리 체계 구축
-* [AWS Cloud](https://aws.amazon.com/) - EC2, RDS, S3, Route 53 등 안정적인 인프라 환경 제공
-
-### 🎨 **Design & Communication**
-* [Figma](https://www.figma.com/) - 사용자 경험(UX) 및 인터페이스(UI) 상세 설계
-* [Lucidchart](https://www.lucidchart.com/) - 협업 중심의 다이어그램 및 순서도 설계
-* [Excalidraw](https://excalidraw.com/) - 직관적인 핸드드로잉 스타일의 와이어프레임 및 아이디어 스케치
-* [Slack](https://slack.com/) & [ZEP](https://zep.us/) - 효율적인 팀 협업 및 실시간 커뮤니케이션 환경 제공
-
----
-**Special Thanks to Open Source Community** 이 프로젝트는 전 세계 수많은 개발자들의 헌신으로 만들어진 오픈소스 라이브러리를 기반으로 합니다. 건강한 오픈소스 생태계를 지향하며, 저희 팀의 고민이 담긴 결과물을 **검토해 주셔서** 다시 한번 감사드립니다.
-
-## [7] 문의처 
+## [6] 문의처 
 📧 **이메일:** fluxing@naver.com
 
 프로젝트 검토 중 궁금한 점이 있으시면 위 이메일로 연락 부탁드립니다. 최대한 빠르게 답변해 드리겠습니다!
 
 ---
 
-## 👥 [8] 팀원 소개 및 소감
+## [7] 팀원 소개 및 소감
 
 | <img src="docs/images/profile_1.png" width="150"> | <img src="docs/images/profile_2.png" width="150"> | <img src="docs/images/profile_3.png" width="150"> | <img src="docs/images/profile_4.png" width="150"> | <img src="docs/images/profile_5.png" width="150"> |
 |:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|
 |                      **정용준**                      |                      **이용준**                      |                      **고아람**                      |                      **이청운**                      |                      **최정혁**                      |
 |    [Tior931108](https://github.com/Tior931108)    |      [d0ngx2-2](https://github.com/d0ngx2-2)      |      [aram0117](https://github.com/aram0117)      |  [Leechungwoon](https://github.com/Leechungwoon)  | [jhyeok-design](https://github.com/jhyeok-design) |
-|                       "소감"                        |                       "소감"                        |                       "소감"                        |                       "소감"                        |                       "소감"                        |
+|                    "행복한 프로젝트"                     |                    "운동 많이 된다."                    |                     "행복했습니다."                     |                    "행복은 4인부터"                     |                   "우리팀 이멤버 리멤버"                   |
 
 
 
