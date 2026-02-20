@@ -75,7 +75,7 @@ public class ItemController {
      * @return
      */
     @Operation(summary = "상품 전체 조회 (관리자)")
-    @GetMapping("/admin/items")
+    @GetMapping("/items")
     public ResponseEntity<PageResponse> getAll(@PageableDefault(page = 0, size = 10) Pageable pageable) {
 
         //페이징 처리된 상품 목록 조회 로직

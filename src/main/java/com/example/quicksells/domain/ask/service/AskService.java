@@ -5,10 +5,7 @@ import com.example.quicksells.common.exception.CustomException;
 import com.example.quicksells.domain.ask.entity.Ask;
 import com.example.quicksells.domain.ask.model.request.AskCreateRequest;
 import com.example.quicksells.domain.ask.model.request.AskUpdateRequest;
-import com.example.quicksells.domain.ask.model.response.AskCreateResponse;
-import com.example.quicksells.domain.ask.model.response.AskGetAllResponse;
-import com.example.quicksells.domain.ask.model.response.AskGetResponse;
-import com.example.quicksells.domain.ask.model.response.AskUpdateReponse;
+import com.example.quicksells.domain.ask.model.response.*;
 import com.example.quicksells.domain.ask.repository.AskRepository;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
 import com.example.quicksells.domain.user.entity.User;
@@ -81,6 +78,13 @@ public class AskService {
         return AskGetResponse.from(ask);
     }
 
+    public AskAdminGetResponse getUserAsk(Long id) {
+
+        Ask ask = getAskVerify(id);
+
+        return AskAdminGetResponse.from(ask);
+    }
+
     /**
      * 문의 수정 (본인만 가능)
      */
@@ -131,6 +135,5 @@ public class AskService {
             throw new CustomException(ExceptionCode.ONLY_OWNER_ASK);
         }
     }
-
 
 }

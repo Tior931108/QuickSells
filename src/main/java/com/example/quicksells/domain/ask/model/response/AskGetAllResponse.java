@@ -12,7 +12,8 @@ public class AskGetAllResponse {
 
     private final Long askId;
     private final String title;
-    private final String maskedUserName;  // 마스킹된 유저 이름
+    private final String maskedUserName;// 마스킹된 유저 이름
+    private final String askType;
     private final LocalDateTime createdAt;
 
     // Entity -> DTO 변환 (유저 이름 마스킹)
@@ -21,6 +22,7 @@ public class AskGetAllResponse {
                 ask.getId(),
                 ask.getTitle(),
                 maskUserName(ask.getUser().getName()), // 마스킹 처리
+                ask.getAskType().name(),
                 ask.getCreatedAt()
         );
     }

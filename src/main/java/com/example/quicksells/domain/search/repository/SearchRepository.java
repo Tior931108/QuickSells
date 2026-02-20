@@ -1,11 +1,13 @@
 package com.example.quicksells.domain.search.repository;
 
 import com.example.quicksells.domain.search.entity.Search;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface SearchRepository extends JpaRepository<Search, Long> {
@@ -24,4 +26,11 @@ public interface SearchRepository extends JpaRepository<Search, Long> {
     @Modifying // 수정/삭제 관련 쿼리
     @Query("delete from Search s where s.createdAt < :oldDate")
     void deletedOldLogs(@Param("oldDate") LocalDateTime oldDate);
+
+    @Query("""
+        select s.keyword
+        from Search s
+        order by s.count desc
+        """)
+    List<String> findTop10ByOrderByTotalCountDesc(Pageable pageable);
 }

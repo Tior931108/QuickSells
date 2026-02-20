@@ -36,19 +36,24 @@ public class BulkDataInsertService {
     private static final Random RANDOM = new Random();
 
     /**
-     * 사용자 데이터 삽입
+     * 사용자 데이터 삽입 (소셜 로그인 필드 추가)
+     * - 모두 일반 회원가입 사용자로 생성 (provider_id = null)
+     * - 일반 사용자: role=USER, status=ACTIVE
+     * - 관리자: role=ADMIN, status=ACTIVE
      */
     @Transactional
     public void insertBulkUsers(int count) {
+        log.info("========================================");
         log.info("{}명의 사용자 데이터 삽입 시작", count);
+        log.info("========================================");
 
         long startTime = System.currentTimeMillis();
 
         String sql = """
-            INSERT INTO users (email, password, name, phone, address, birth, role, 
-                               is_deleted, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """;
+        INSERT INTO users (email, password, name, phone, address, birth, role, 
+                           status, provider_id, password_reset_required, is_deleted, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
 
         int totalBatches = (int) Math.ceil((double) count / BATCH_SIZE);
 
@@ -64,16 +69,23 @@ public class BulkDataInsertService {
                 @Override
                 public void setValues(PreparedStatement ps, int i) throws SQLException {
                     int actualIndex = startIdx + i;
-                    ps.setString(1, "user" + actualIndex + "@quicksell.com");
-                    ps.setString(2, passwordEncoder.encode("password123!"));
-                    ps.setString(3, "사용자" + actualIndex);
-                    ps.setString(4, "010" + String.format("%08d", actualIndex % 100000000));
-                    ps.setString(5, "서울시 " + getRandomDistrict() + " " + (actualIndex % 500 + 1) + "번지");
-                    ps.setString(6, generateRandomBirth());
-                    ps.setString(7, actualIndex % 10 == 0 ? "ADMIN" : "USER");
-                    ps.setBoolean(8, false);
-                    ps.setTimestamp(9, Timestamp.valueOf(LocalDateTime.now().minusDays(actualIndex % 365)));
-                    ps.setTimestamp(10, Timestamp.valueOf(LocalDateTime.now().minusDays(actualIndex % 365)));
+
+                    ps.setString(1, "user" + actualIndex + "@quicksell.com"); // email
+                    ps.setString(2, passwordEncoder.encode("password123!")); // password
+                    ps.setString(3, "사용자" + actualIndex); // name
+                    ps.setString(4, "010" + String.format("%08d", actualIndex % 100000000)); // phone
+                    ps.setString(5, "서울시 " + getRandomDistrict() + " " + (actualIndex % 500 + 1) + "번지"); // address
+                    ps.setString(6, generateRandomBirth()); // birth
+                    ps.setString(7, actualIndex % 10 == 0 ? "ADMIN" : "USER"); // role (10%는 ADMIN)
+
+                    // 소셜 로그인 관련 필드
+                    ps.setString(8, "ACTIVE"); // status (모두 ACTIVE - 일반 회원가입)
+                    ps.setNull(9, Types.VARCHAR); // provider_id = null (일반 회원가입)
+                    ps.setBoolean(10, false); // password_reset_required
+
+                    ps.setBoolean(11, false); // is_deleted
+                    ps.setTimestamp(12, Timestamp.valueOf(LocalDateTime.now().minusDays(actualIndex % 365))); // created_at
+                    ps.setTimestamp(13, Timestamp.valueOf(LocalDateTime.now().minusDays(actualIndex % 365))); // updated_at
                 }
 
                 @Override
@@ -96,6 +108,7 @@ public class BulkDataInsertService {
         log.info("사용자 데이터 {} 건 삽입 완료 | 총 소요시간: {}초",
                 count, totalDuration / 1000.0);
         log.info("평균 처리 속도: {}건/초", (count * 1000.0) / totalDuration);
+        log.info("일반 사용자: {}명 (USER, ACTIVE), 관리자: {}명 (ADMIN, ACTIVE)", (int)(count * 0.9), (int)(count * 0.1));
 
     }
 

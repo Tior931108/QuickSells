@@ -1,5 +1,7 @@
 package com.example.quicksells.domain.chat.service;
 
+import com.example.quicksells.common.enums.ExceptionCode;
+import com.example.quicksells.common.exception.CustomException;
 import com.example.quicksells.domain.chat.model.response.ChatRoomResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,6 +73,11 @@ public class ChatNotificationService {
      * @param message 메시지 객체
      */
     public void broadcastMessage(Long chatRoomId, Object message) {
+
+        // 채팅방 ID NULL 방어 코드
+        if (chatRoomId == null) {
+            throw new CustomException(ExceptionCode.CANNOT_CHATROOM_ID_IS_NULL);
+        }
 
         String destination = "/topic/chat/room/" + chatRoomId;
         messagingTemplate.convertAndSend(destination, message);

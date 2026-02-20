@@ -1,22 +1,27 @@
 package com.example.quicksells.domain.search.service;
 
+import com.example.quicksells.common.enums.AppraiseStatus;
+import com.example.quicksells.common.enums.AuctionStatusType;
 import com.example.quicksells.common.enums.ExceptionCode;
 import com.example.quicksells.common.exception.CustomException;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
-import com.example.quicksells.domain.item.entity.Item;
 import com.example.quicksells.domain.search.model.response.SearchGetResponse;
+import com.example.quicksells.domain.search.repository.SearchCustomRepositoryImpl;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @AllArgsConstructor
 public class SearchService {
 
-    private final SearchRankingSnapshotService searchRankingSnapshotService;
     private final SearchCacheService searchCacheService;
+    private final SearchCustomRepositoryImpl searchCustomRepositoryImpl;
+    private final SlidingWindowRateLimiter slidingWindowRateLimiter;
 
     /**
      * 상품 검색을 처리하는 메인 서비스
@@ -26,24 +31,48 @@ public class SearchService {
      * @return 상품 목록 검색 결과
      */
     @Transactional(readOnly = true)
-    public Page<SearchGetResponse> search(AuthUser authUser, String keyword, Pageable pageable) {
+    public Page<SearchGetResponse> search(AuthUser authUser, String keyword, List<AppraiseStatus> appraiseStatus, List<AuctionStatusType> auctionStatus, Pageable pageable) {
 
         //로그인 예외처리
         if (authUser == null) {
             throw new CustomException(ExceptionCode.UNAUTHORIZED_SEARCH);
         }
 
+        //Rate Limit 체크(슬라이딩 윈도우)
+        checkRateLimit(authUser.getId());
+
         //검색어 공백, null 방지
         String searchKeyword = safeKeyword(keyword);
 
-        // 검색어 중복 방지
-        searchCacheService.notDoubleClick(String.valueOf(authUser.getId()),searchKeyword);
+        // 검색어 중복 방지(3초), 검색어 카운트 기능
+        searchCacheService.notDoubleClick(String.valueOf(authUser.getId()), searchKeyword);
 
-        // 캐시 적용된 상품 조회
-        Page<Item> items = searchCacheService.cachedSearch(searchKeyword, pageable);
+        //검색 실행 -> 관리자 체크
+        boolean isAdmin = "ADMIN".equals(authUser.getRole().name());
 
-        //Entity -> DTO 변환
-        return items.map(SearchGetResponse::from);
+        //판매자 or 구매자(유저)
+        Long viewerId = authUser.getId();
+
+        return searchCustomRepositoryImpl.searchItems(searchKeyword, appraiseStatus, auctionStatus, viewerId, isAdmin, pageable);
+    }
+
+    /**
+     *
+     * @param userId
+     */
+    public void checkRateLimit(Long userId) {
+        boolean allowed = slidingWindowRateLimiter.isAllowed(userId, 10, 5);
+
+        if (!allowed) {
+
+            //10초 동안 남은 요청 횟수
+            int reaming = slidingWindowRateLimiter.getRemainingRequests(userId, 10, 5);
+
+            //다음 요청까지 남은 시간
+            long retryAfter = slidingWindowRateLimiter.getAfter(userId, 10);
+
+            throw new CustomException(ExceptionCode.RATE_LIMIT_EXCEEDED);
+        }
     }
 
     /**
@@ -67,3 +96,4 @@ public class SearchService {
         return searchKeyword;
     }
 }
+

@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Search extends BaseEntity{
+public class Search extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,11 +28,7 @@ public class Search extends BaseEntity{
         this.count = 0L; //0부터 카운트 시작
     }
 
-    //검색어 증가 (+1)
-    public void increase() {
-        this.count++;
-    }
-
+    //카운트 업데이트
     public void updateCount(Long count) {
         this.count = count;
     }

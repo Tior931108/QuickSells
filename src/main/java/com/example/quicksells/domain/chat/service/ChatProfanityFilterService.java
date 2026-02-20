@@ -108,26 +108,4 @@ public class ChatProfanityFilterService {
         return "*".repeat(Math.max(1, length));
     }
 
-    /**
-     * 비속어 추가 (관리자 기능)
-     */
-    public void addProfanityWord(String word) {
-        if (word != null && !word.trim().isEmpty()) {
-            profanityWords.add(word.trim());
-        }
-    }
-
-    /**
-     * 비속어 제거 (관리자 기능)
-     */
-    public void removeProfanityWord(String word) {
-        profanityWords.remove(word);
-    }
-
-    /**
-     * 현재 등록된 비속어 개수
-     */
-    public int getProfanityWordCount() {
-        return profanityWords.size();
-    }
 }

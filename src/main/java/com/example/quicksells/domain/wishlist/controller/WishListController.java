@@ -31,7 +31,7 @@ public class WishListController {
 
     @Operation(summary = "관심 목록 등록")
     @PostMapping("/wishList")
-    public ResponseEntity<CommonResponse> createWishList(@RequestBody WishListCreateRequest request) {
+    public ResponseEntity<CommonResponse> createWishList(@Valid @RequestBody WishListCreateRequest request) {
 
         WishListCreateResponse response = wishListService.saveWishList(request);
 

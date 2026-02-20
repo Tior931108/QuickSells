@@ -1,5 +1,7 @@
 package com.example.quicksells.domain.search.controller;
 
+import com.example.quicksells.common.enums.AppraiseStatus;
+import com.example.quicksells.common.enums.AuctionStatusType;
 import com.example.quicksells.common.model.CommonResponse;
 import com.example.quicksells.common.model.PageResponse;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
@@ -37,10 +39,10 @@ public class SearchController {
      */
     @Operation(summary = "상품 검색 조회")
     @GetMapping("/item/searches")
-    public ResponseEntity<PageResponse> keywordGet(@AuthenticationPrincipal AuthUser authUser, @RequestParam String keyword, @PageableDefault(page = 0, size = 10) Pageable pageable) {
+    public ResponseEntity<PageResponse> keywordGet(@AuthenticationPrincipal AuthUser authUser, @RequestParam String keyword, @RequestParam(required = false)List<AppraiseStatus> appraiseStatuses, @RequestParam(required = false)List<AuctionStatusType>auctionStatus, @PageableDefault(page = 0, size = 10) Pageable pageable) {
 
         //비지니스 로직
-        Page<SearchGetResponse> responsesDto = searchService.search(authUser, keyword, pageable);
+        Page<SearchGetResponse> responsesDto = searchService.search(authUser, keyword, appraiseStatuses, auctionStatus, pageable);
 
         // 미등록 상품 검색한 경우 응답 값
         if (responsesDto.isEmpty()) {
@@ -60,5 +62,14 @@ public class SearchController {
 
         //응답 값
         return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("인기 검색어 목록입니다.", popularKeywords));
+    }
+
+    @Operation(summary = "실시간 인기 검색어 조회")
+    @GetMapping("/popular/realtime")
+    public ResponseEntity<CommonResponse>getRealtimeTop10(){
+
+        List<String> keywords = searchCacheService.getRealtimeTop10();
+
+        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("인기 검색어 목록입니다.",keywords));
     }
 }

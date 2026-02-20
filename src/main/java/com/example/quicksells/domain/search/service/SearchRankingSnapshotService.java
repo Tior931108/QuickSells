@@ -3,7 +3,7 @@ package com.example.quicksells.domain.search.service;
 import com.example.quicksells.common.enums.ExceptionCode;
 import com.example.quicksells.common.exception.CustomException;
 import com.example.quicksells.domain.search.repository.SearchRepository;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.example.quicksells.domain.search.entity.Search;
@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 
 public class SearchRankingSnapshotService {
 

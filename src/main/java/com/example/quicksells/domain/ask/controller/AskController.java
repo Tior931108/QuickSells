@@ -4,10 +4,7 @@ import com.example.quicksells.common.model.CommonResponse;
 import com.example.quicksells.common.model.PageResponse;
 import com.example.quicksells.domain.ask.model.request.AskCreateRequest;
 import com.example.quicksells.domain.ask.model.request.AskUpdateRequest;
-import com.example.quicksells.domain.ask.model.response.AskCreateResponse;
-import com.example.quicksells.domain.ask.model.response.AskGetAllResponse;
-import com.example.quicksells.domain.ask.model.response.AskGetResponse;
-import com.example.quicksells.domain.ask.model.response.AskUpdateReponse;
+import com.example.quicksells.domain.ask.model.response.*;
 import com.example.quicksells.domain.ask.service.AskService;
 import com.example.quicksells.domain.auth.model.dto.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -69,6 +66,18 @@ public class AskController {
         AskGetResponse response = askService.getAsk(id, authUser);
 
         return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("문의 상세 조회에 성공했습니다.", response));
+    }
+
+    /**
+     * 사용자 문의 상세 조회 (관리자)
+     */
+    @Operation(summary = "사용자 문의 상세 조회")
+    @GetMapping("/admin/asks/{id}")
+    public ResponseEntity<CommonResponse> getUserAsk(@PathVariable Long id) {
+
+        AskAdminGetResponse response = askService.getUserAsk(id);
+
+        return ResponseEntity.status(HttpStatus.OK).body(CommonResponse.success("사용자 문의 상세 조회에 성공했습니다.", response));
     }
 
     /**

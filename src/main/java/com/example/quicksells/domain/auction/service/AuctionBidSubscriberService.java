@@ -29,17 +29,15 @@ public class AuctionBidSubscriberService {
         topic.addListener(BidInfo.class, (pattern, channel, msg) -> {
 
             String buyerName = msg.getBuyerName();
-
             Integer bidPrice = msg.getBidPrice();
+            String itemName = msg.getItemName();
 
-            // 입찰 정보
-            log.info("[SUB] 새로운 입찰 메시지 수신 ▶ Channel : {} ▶ Message : 유저 {} 님이 {}원에 입찰", channel, buyerName, bidPrice);
+            log.info("[SUB] 새로운 입찰 수신 ▶ Channel:{} ▶ {} 님이 [{}]를 {}원에 입찰",
+                    channel, buyerName, itemName, bidPrice);
 
-            // 웹소켓 목적지 주소 생성 (예: /topic/auction/1)
             String destination = "/topic/auction/" + msg.getAuctionId();
-
-            // 스톰프로 실시간 입찰 정보 전송 (휘발성)
             messagingTemplate.convertAndSend(destination, msg);
         });
+
     }
 }

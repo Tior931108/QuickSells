@@ -1134,7 +1134,7 @@
     // ==================== 채팅방 생성 ====================
     async function createChatRoomWithUserId(otherUserId) {
         try {
-            const response = await fetch(`${API_BASE}/chat/rooms`, {
+            const response = await fetch(`${API_BASE}/chat/rooms/user-admin`, {
                 method: 'POST',
                 headers: {
                     'Authorization': 'Bearer ' + currentToken,

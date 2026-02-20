@@ -62,7 +62,7 @@ public class AuctionController {
 
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "updatedAt");
 
-        Slice<AuctionHistoryGetAllResponse> response = auctionService.GetAllAuctionHistory(pageable, authUser, buyerId);
+        Slice<AuctionHistoryGetAllResponse> response = auctionService.getAllAuctionHistory(pageable, authUser, buyerId);
 
         return ResponseEntity.status(HttpStatus.OK).body(SliceResponse.success("내 경매 입찰 내역 조회에 성공했습니다", response));
     }

@@ -5,6 +5,8 @@ import com.example.quicksells.domain.item.entity.Item;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 import java.util.Optional;
 
 public interface AppraiseRepository extends JpaRepository<Appraise, Long>, AppraiseCustomRepository {
@@ -22,8 +24,8 @@ public interface AppraiseRepository extends JpaRepository<Appraise, Long>, Appra
     boolean existsByItemIdAndUserId(@Param("itemId") Long itemId, @Param("adminId") Long adminId);
 
     // 상품마다 감정된 목록 조회
-    @Query("SELECT a FROM Appraise a JOIN FETCH a.item WHERE a.item = :item")
-    Optional<Appraise> findByItemAppraise(@Param("item") Item item);
+    @Query("SELECT a FROM Appraise a WHERE a.item = :item")
+    List<Appraise> findAllByItem(@Param("item") Item item);
 
     // 상품과 함께
     @Query("SELECT a FROM Appraise a JOIN FETCH a.item WHERE a.id = :appraiseId")

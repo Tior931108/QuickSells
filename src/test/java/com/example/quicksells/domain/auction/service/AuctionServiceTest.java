@@ -347,7 +347,7 @@ class AuctionServiceTest {
         when(auctionHistoryRepository.findByBuyerId(any(), any())).thenReturn(auctionSlice);
 
         // when
-        Slice<AuctionHistoryGetAllResponse> result = auctionService.GetAllAuctionHistory(pageable, authBuyer, requestBuyerId);
+        Slice<AuctionHistoryGetAllResponse> result = auctionService.getAllAuctionHistory(pageable, authBuyer, requestBuyerId);
 
         // then
         assertThat(result.getContent().get(0).getId()).isEqualTo(auctionSlice.getContent().get(0).getId());
@@ -478,7 +478,7 @@ class AuctionServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
 
         // when&then
-        assertThatThrownBy(() -> auctionService.GetAllAuctionHistory(pageable, authBuyer, requestBuyerId))
+        assertThatThrownBy(() -> auctionService.getAllAuctionHistory(pageable, authBuyer, requestBuyerId))
                 .isInstanceOf(CustomException.class)
                 .hasMessage(ACCESS_DENIED_ONLY_OWNER.getMessage());
 
